@@ -1,2 +1,35 @@
 .DS_Store
+
+# Entire `docs/` at repository root (and all nested paths);
 /docs/
+
+# Local env and secrets (keep *.example committed)
+.env
+.env.*
+!.env.example
+!identity-mfa/backend/.env.example
+
+# Lexik JWT keypairs — generate locally (see identity-mfa/backend README or handbook)
+identity-mfa/backend/config/jwt/*.pem
+
+# Dependencies and build output
+identity-mfa/backend/vendor/
+identity-mfa/frontend/node_modules/
+identity-mfa/frontend/dist/
+
+# Symfony / PHP caches
+identity-mfa/backend/var/
+
+# Backup kit generated artifacts
+backup-dr/backups/
+backup-dr/reports/
+*.sql.gz
+
+# Logging kit: mounted dev logs may contain sensitive lines
+logging-alerts/configs/logs/*.log
+
+# IDE / OS noise
+.idea/
+.vscode/
+*.swp
+Thumbs.db
