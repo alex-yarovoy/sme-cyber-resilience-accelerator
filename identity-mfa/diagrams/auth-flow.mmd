@@ -1,0 +1,35 @@
+graph TD
+    A[User Login Request] --> B[Symfony Security]
+    B --> C{User Exists?}
+    C -->|No| D[Return 401]
+    C -->|Yes| E[Check Password]
+    E -->|Invalid| D
+    E -->|Valid| F[Generate JWT Token]
+    F --> G[Check MFA Status]
+    G -->|MFA Required| H[Send TOTP Challenge]
+    G -->|MFA Not Required| M[Return Access Token]
+    H --> I[User Enters TOTP Code]
+    I --> J[Validate TOTP]
+    J -->|Invalid| K[Return MFA Error]
+    J -->|Valid| L[Generate MFA Token]
+    L --> M
+    M --> N[Store Session in Redis]
+    N --> O[Return Success Response]
+    
+    P[Admin Panel - Vue.js] --> Q[API Gateway]
+    Q --> R[Symfony Backend]
+    R --> S[PostgreSQL Database]
+    R --> T[Redis Cache]
+    
+    U[Google Authenticator] --> V[TOTP Generator]
+    V --> I
+    
+    W[Rate Limiting] --> B
+    X[Audit Logging] --> R
+    
+    style A fill:#e1f5fe
+    style M fill:#c8e6c9
+    style D fill:#ffcdd2
+    style K fill:#ffcdd2
+    style S fill:#fff3e0
+    style T fill:#f3e5f5

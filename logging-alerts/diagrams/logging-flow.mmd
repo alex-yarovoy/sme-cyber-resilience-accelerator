@@ -1,0 +1,10 @@
+graph LR
+  A[Application Logs] --> B[Filebeat]
+  B --> C[Elasticsearch]
+  C --> D[Kibana]
+  A --> E[Prometheus Exporters]
+  E --> F[Prometheus]
+  F --> G[Alertmanager]
+  G --> H[Slack/Email]
+
+

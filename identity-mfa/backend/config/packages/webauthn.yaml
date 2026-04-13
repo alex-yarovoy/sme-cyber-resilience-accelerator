@@ -1,0 +1,17 @@
+webauthn:
+    controllers_enabled: true
+    metadata_service: false
+    doctrine:
+        enabled: true
+    profile:
+        name: Identity-MFA
+        rp_id: localhost
+        origin: http://localhost:8080
+    options:
+        registration:
+            authenticatorSelection:
+                userVerification: preferred
+        authentication:
+            userVerification: preferred
+
+

@@ -1,0 +1,7 @@
+gesdinet_jwt_refresh_token:
+    refresh_token_class: Gesdinet\JWTRefreshTokenBundle\Entity\RefreshToken
+    ttl: 604800    # 7 days
+    user_provider: security.user.provider.concrete.app_user_provider
+    single_use: true
+
+

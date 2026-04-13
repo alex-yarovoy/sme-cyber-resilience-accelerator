@@ -1,0 +1,22 @@
+groups:
+  - name: auth-alerts
+    rules:
+      - alert: HighLoginFailures
+        expr: rate(app_auth_login_failed_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of failed logins"
+          description: "Failed logins exceed 5/min over 5m"
+
+      - alert: MFABurstFailures
+        expr: rate(app_auth_mfa_failed_total[5m]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MFA failures spiking"
+          description: "MFA failures exceed 3/min over 5m"
+
+

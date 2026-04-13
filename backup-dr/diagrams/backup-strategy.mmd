@@ -1,0 +1,11 @@
+graph TD
+  A[Primary DB] --> B[pg_dump/mysqldump]
+  B --> C[Encrypt + Compress]
+  C --> D[Upload to S3]
+  D --> E[Lifecycle to Glacier]
+  C --> F[Local 7-day retention]
+  D --> G[DR Drill Restore]
+  G --> H[Automated Tests]
+  H --> I[DR Report]
+
+

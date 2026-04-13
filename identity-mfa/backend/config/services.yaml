@@ -1,0 +1,25 @@
+parameters:
+    jwt_secret: '%env(JWT_SECRET)%'
+    jwt_algorithm: HS256
+    jwt_refresh_expiry: 604800
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        bind:
+            string $jwtSecret: '%jwt_secret%'
+            string $jwtAlgorithm: '%jwt_algorithm%'
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+

@@ -1,0 +1,16 @@
+framework:
+    rate_limiter:
+        login:
+            policy: 'token_bucket'
+            limit: 5
+            rate: { interval: '1 minute', amount: 5 }
+        mfa:
+            policy: 'token_bucket'
+            limit: 3
+            rate: { interval: '1 minute', amount: 3 }
+        api:
+            policy: 'token_bucket'
+            limit: 100
+            rate: { interval: '1 minute', amount: 100 }
+
+

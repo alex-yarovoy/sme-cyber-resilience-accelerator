@@ -1,0 +1,9 @@
+{
+  "description": "Redact common sensitive fields",
+  "processors": [
+    { "gsub": { "field": "message", "pattern": "(Bearer )([A-Za-z0-9\-_.]+)", "replacement": "$1[REDACTED]" } },
+    { "gsub": { "field": "message", "pattern": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "replacement": "[EMAIL]" } }
+  ]
+}
+
+

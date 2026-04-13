@@ -1,0 +1,16 @@
+scheb_two_factor:
+    totp:
+        enabled: true
+        issuer: 'Identity-MFA'
+        window: 1
+        parameters:
+            digits: 6
+            window: 1
+        template: 'security/two_factor.html.twig'
+    trusted_device:
+        enabled: true
+        lifetime: 2592000   # 30 days
+    backup_codes:
+        enabled: true
+
+
