@@ -25,7 +25,7 @@ security:
             security: false
 
         login:
-            pattern: ^/api/auth
+            pattern: ^/api/auth/(login|refresh|mfa(/.*)?)$
             stateless: true
             lazy: true
             provider: app_user_provider
@@ -38,6 +38,7 @@ security:
 
     access_control:
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/refresh, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/mfa, roles: PUBLIC_ACCESS }
         - { path: ^/api/webauthn/options, roles: PUBLIC_ACCESS }
         - { path: ^/api/webauthn/register$, roles: ROLE_USER }
