@@ -78,6 +78,14 @@ A comprehensive Identity and Multi-Factor Authentication (MFA) system built with
 
 ### Installation
 
+**Secrets and keys:** Do not commit `.env` or `config/jwt/*.pem` (they are listed in `.gitignore`). Copy `backend/.env.example` to `.env`, then generate Lexik RSA keys if the files are missing:
+
+```bash
+mkdir -p config/jwt
+openssl genpkey -algorithm RSA -out config/jwt/private.pem -pkeyopt rsa_keygen_bits:2048
+openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
+```
+
 1. **Clone and setup backend**:
 ```bash
 cd identity-mfa/backend
@@ -213,10 +221,6 @@ docker-compose up -d
 3. Write tests for new functionality
 4. Ensure all tests pass
 5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
 
 ## Support
 

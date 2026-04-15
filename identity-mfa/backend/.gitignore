@@ -1,0 +1,10 @@
+/.env
+/.env.local
+/.env.local.php
+/.env.*.local
+/vendor/
+/var/
+.phpunit.result.cache
+
+# Lexik JWT — never commit private keys; regenerate per environment
+/config/jwt/*.pem

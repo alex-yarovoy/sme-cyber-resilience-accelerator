@@ -33,16 +33,11 @@ Together they close a loop: **prevent** credential abuse, **detect** operational
 ## Principles
 
 - **Portable defaults** — Prefer S3-compatible storage APIs, standard SQL, and common auth flows so teams can change hosting or cloud without rewriting the kit.  
-- **Operational honesty** — Proof-of-concept placeholders, local-dev-only security settings, and integration gaps should stay visible in kit docs and code comments rather than implied as production-complete.  
 - **No secrets in git** — Use environment variables and `.env` (not committed); compose files use **dev-only** placeholders—rotate for any shared environment.  
 - **Observable security** — Authentication and risk-related decisions should be **auditable** where the identity kit implements logging.  
 - **Recoverability is tested** — Backup scripts are meant to pair with **restore** and **drill** scripts; a backup without a tested restore is incomplete.  
 - **Single responsibility per kit** — Keep kit boundaries clear so teams can reuse one slice without adopting the whole repo.
 
-## Non-goals (current phase)
-
-These kits are **not** a full replacement for enterprise identity providers, a FedRAMP or PCI-DSS certification claim for this repository alone, or one turnkey multi-cloud Terraform product covering all three areas.
-
 ## Contributing
 
-Follow the license file in each kit where present. Report issues and propose changes via pull requests; keep commits focused and reproducible.
+Report issues and propose changes via pull requests; keep commits focused and reproducible.
