@@ -1,43 +1,55 @@
-# SME resilience kits
+# SME Cyber Resilience Accelerator
 
-Reference implementations for **managed service providers (MSPs)** and product teams that need **repeatable**, **vendor-neutral** baselines on common stacks: strong identity, observable operations, and tested recovery.
+Shippable security and resilience building blocks for **managed service providers (MSPs)** and engineering teams that run **small and mid-sized** environments. The Accelerator packages **strong identity**, **observable operations**, and **tested recovery** into runnable software and automation you can deploy, extend, and run in production.
 
-The work targets **practical cyber-resilience** for small and mid-sized enterprises—especially teams with limited dedicated security staff—by turning goals such as **identity and least privilege**, **data protection**, **observability**, and **recoverability** into day-to-day engineering artifacts (configs, scripts, runbooks), not slide-deck advice alone.
+## What it does
 
-## Three kits
+- **Identity and access** — MFA, session policy, and audit-friendly authentication flows backed by a real application stack.  
+- **Detection and response** — Centralized logs, metrics, and alert routing so incidents surface in your existing on-call or ticketing path.  
+- **Backup and continuity** — Encrypted backups, restore procedures, and drill-oriented scripts so recovery is rehearsed, not assumed.
 
-The repository is a **monorepo of three independent kits**. There is no shared runtime between them; they are related by theme (prevent abuse, detect regressions, recover with evidence).
+Each component is documented, versioned with the rest of the monorepo, and intended to be **forked or integrated** into your own delivery pipeline.
 
-| Kit | Path | Stack (summary) | Primary outcomes |
-|-----|------|-----------------|------------------|
+## Components
+
+The monorepo contains **three independent products** (separate runtimes; no shared service mesh between them). They share a common goal: reduce credential abuse, catch regressions early, and prove that restore paths work.
+
+| Component | Path | Stack (summary) | What you get |
+|-----------|------|-----------------|--------------|
 | Identity + MFA | [`identity-mfa/`](identity-mfa/) | Symfony, Vue, PostgreSQL, Redis | Account security, MFA, auditable auth events |
 | Logging + Alerts | [`logging-alerts/`](logging-alerts/) | Elastic Stack, Prometheus, Alertmanager | Searchable logs, metrics, routed alerts |
 | Backup + DR drill | [`backup-dr/`](backup-dr/) | PostgreSQL (scripts), S3-style storage patterns | Encrypted backups, restore verification, drill-oriented runbooks |
 
-Each kit folder has its own `README.md` (and, where present, `architecture.md` or `ARCHITECTURE.md`) with stack details, assumptions, and quick start steps. Mermaid diagrams live under each kit’s `diagrams/` folder.
+Each directory has its own `README.md` plus architecture notes and quick starts where applicable. Diagrams live under each component’s `diagrams/` folder.
 
-## How the pieces compose
+## How the pieces fit together
 
-1. **Identity** defines who is in the system and under what policy (MFA, sessions, audit-friendly events).  
-2. **Logging and alerts** make failures and abuse visible early and route signal instead of noise.  
-3. **Backup and drills** ensure recovery is **practiced**, not guessed—encrypted, versioned backups with documented **RTO** and **RPO** expectations where you define them.
+1. **Identity** defines who may access systems and enforces MFA, session rules, and events you can retain for review.  
+2. **Logging and alerts** expose failures and abuse early and send **actionable** signal to the right channels.  
+3. **Backup and drills** pair encrypted backups with **restore** and **drill** steps and explicit **RTO** / **RPO** targets you configure.
 
 Together they close a loop: **prevent** credential abuse, **detect** operational and security regressions, **recover** with evidence that restore paths work.
 
-## Who this is for
+## Current shipping surface
 
-- Engineering leads standardizing security and reliability across many small or mid-sized deployments  
+Today’s releases center on **Docker Compose**-based deployments, production-style service configuration, and shell automation. That keeps onboarding fast and behavior transparent before you add heavier orchestration.
+
+**Terraform** and **Kubernetes** (Helm and/or Kustomize) packaging are **planned**; see **[ROADMAP.md](ROADMAP.md)** for the phased delivery plan.
+
+## Who it is for
+
+- Engineering leads standardizing security and reliability across many SME-scale deployments  
 - MSPs onboarding clients who need a clear baseline before customization  
-- Developers learning production-shaped patterns (not toy demos)
+- Developers who want production-shaped patterns rather than toy demos
 
 ## Principles
 
-- **Portable defaults** — Prefer S3-compatible storage APIs, standard SQL, and common auth flows so teams can change hosting or cloud without rewriting the kit.  
-- **No secrets in git** — Use environment variables and `.env` (not committed); compose files use **dev-only** placeholders—rotate for any shared environment.  
-- **Observable security** — Authentication and risk-related decisions should be **auditable** where the identity kit implements logging.  
-- **Recoverability is tested** — Backup scripts are meant to pair with **restore** and **drill** scripts; a backup without a tested restore is incomplete.  
-- **Single responsibility per kit** — Keep kit boundaries clear so teams can reuse one slice without adopting the whole repo.
+- **Portable defaults** — Prefer S3-compatible storage APIs, standard SQL, and common auth flows so you can change hosting or cloud without rewriting the Accelerator.  
+- **No secrets in git** — Use environment variables and `.env` (not committed); Compose files ship **dev-only** placeholders—rotate for any shared environment.  
+- **Observable security** — Authentication and risk-related decisions should be **auditable** where the identity component implements logging.  
+- **Recoverability is tested** — Backup automation is built to pair with **restore** and **drill** scripts; a backup without a tested restore is incomplete.  
+- **Clear boundaries** — Each component stays self-contained so you can adopt one without taking the whole monorepo.
 
 ## Contributing
 
-Report issues and propose changes via pull requests; keep commits focused and reproducible.
+Issues and pull requests are welcome; keep changes focused and reproducible from a clean checkout.

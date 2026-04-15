@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Entity\AuditLog;
 use App\Entity\User;
 use App\Service\AuditLogger;
 use App\Service\JwtTokenService;
@@ -22,6 +21,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Gesdinet\JWTRefreshTokenBundle\Entity\RefreshToken;
 
 #[Route('/api/auth', name: 'api_auth_')]
 class AuthController extends AbstractController
@@ -185,39 +185,68 @@ class AuthController extends AbstractController
     public function refresh(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-        
+
         if (!$data || !isset($data['refresh_token'])) {
             return $this->json(['error' => 'Refresh token is required'], Response::HTTP_BAD_REQUEST);
         }
 
-        try {
-            $payload = $this->jwtTokenService->decodeRefreshToken($data['refresh_token']);
-            $user = $this->entityManager->getRepository(User::class)->find($payload['user_id']);
-            
-            if (!$user || !$user->isActive()) {
-                throw new UserNotFoundException('User not found');
-            }
+        $stored = $this->entityManager->getRepository(RefreshToken::class)->findOneBy([
+            'refreshToken' => $data['refresh_token'],
+        ]);
 
-            // Generate new tokens
-            $accessToken = $this->jwtManager->create($user);
-            $refreshToken = $this->jwtTokenService->generateRefreshToken($user);
-
-            $this->auditLogger->log('TOKEN_REFRESHED', $user, $request->getClientIp(), $request->headers->get('User-Agent'));
-
-            return $this->json([
-                'access_token' => $accessToken,
-                'refresh_token' => $refreshToken,
-                'token_type' => 'Bearer',
-                'expires_in' => 900
-            ]);
-
-        } catch (\Exception $e) {
+        if (!$stored) {
             $this->auditLogger->log('TOKEN_REFRESH_FAILED', null, $request->getClientIp(), $request->headers->get('User-Agent'), [
-                'error' => $e->getMessage()
+                'error' => 'Unknown refresh token',
             ]);
-            
+
             return $this->json(['error' => 'Invalid refresh token'], Response::HTTP_UNAUTHORIZED);
         }
+
+        $valid = $stored->getValid();
+        if (!$valid instanceof \DateTimeInterface) {
+            $this->entityManager->remove($stored);
+            $this->entityManager->flush();
+            $this->auditLogger->log('TOKEN_REFRESH_FAILED', null, $request->getClientIp(), $request->headers->get('User-Agent'), [
+                'error' => 'Malformed refresh token validity',
+            ]);
+
+            return $this->json(['error' => 'Invalid refresh token'], Response::HTTP_UNAUTHORIZED);
+        }
+        $validUntil = \DateTimeImmutable::createFromInterface($valid);
+        if ($validUntil < new \DateTimeImmutable()) {
+            $this->entityManager->remove($stored);
+            $this->entityManager->flush();
+            $this->auditLogger->log('TOKEN_REFRESH_FAILED', null, $request->getClientIp(), $request->headers->get('User-Agent'), [
+                'error' => 'Expired refresh token',
+            ]);
+
+            return $this->json(['error' => 'Invalid refresh token'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $subject = method_exists($stored, 'getUserIdentifier') ? $stored->getUserIdentifier() : $stored->getUsername();
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $subject]);
+        if (!$user || !$user->isActive()) {
+            $this->auditLogger->log('TOKEN_REFRESH_FAILED', null, $request->getClientIp(), $request->headers->get('User-Agent'), [
+                'error' => 'User not found for refresh token',
+            ]);
+
+            return $this->json(['error' => 'Invalid refresh token'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $this->entityManager->remove($stored);
+        $this->entityManager->flush();
+
+        $accessToken = $this->jwtManager->create($user);
+        $refreshToken = $this->refreshTokenGenerator->createForUser($user);
+
+        $this->auditLogger->log('TOKEN_REFRESHED', $user, $request->getClientIp(), $request->headers->get('User-Agent'));
+
+        return $this->json([
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
+            'token_type' => 'Bearer',
+            'expires_in' => 900,
+        ]);
     }
 
     #[Route('/logout', name: 'logout', methods: ['POST'])]
