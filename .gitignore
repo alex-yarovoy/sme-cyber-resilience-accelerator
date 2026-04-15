@@ -1,8 +1,5 @@
 .DS_Store
 
-# Entire `docs/` at repository root (and all nested paths);
-/docs/
-
 # Local env and secrets (keep *.example committed)
 .env
 .env.*
@@ -25,8 +22,10 @@ backup-dr/backups/
 backup-dr/reports/
 *.sql.gz
 
-# Logging kit: mounted dev logs may contain sensitive lines
-logging-alerts/configs/logs/*.log
+# Logging kit: dev logs (keep tracked sample for lab quick start)
+logging-alerts/configs/logs/*
+!logging-alerts/configs/logs/.gitkeep
+!logging-alerts/configs/logs/sample-app.log
 
 # IDE / OS noise
 .idea/

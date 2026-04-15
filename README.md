@@ -36,6 +36,19 @@ Today’s releases center on **Docker Compose**-based deployments, production-st
 
 **Terraform** and **Kubernetes** (Helm and/or Kustomize) packaging are **planned**; see **[ROADMAP.md](ROADMAP.md)** for the phased delivery plan.
 
+## Phase 0 (shipped in this repository)
+
+| Area | What you get |
+|------|----------------|
+| **Trust** | `LICENSE` (Apache-2.0), `SECURITY.md`, and GitHub Actions: **ShellCheck** on `backup-dr/scripts`, **`docker compose config`** for `identity-mfa` and `logging-alerts`. |
+| **Identity + MFA** | Compose stack: entrypoint runs **migrations**; **lab fixtures are stubbed by default** (one `exec` command in kit README). See [`docs/PHASE0_STUBS.md`](docs/PHASE0_STUBS.md). |
+| **Logging + alerts** | Compose stack, committed **sample JSON log** under `logging-alerts/configs/logs/`, and a **Discover-first** Kibana workflow. Version-pinned NDJSON dashboards are deferred to [ROADMAP.md](ROADMAP.md). |
+| **Backup + DR** | Postgres-centric **backup / encrypt / decrypt / restore** scripts plus a **Docker-based drill** with portable timestamps in the report. MySQL dumps, Object Lock, and Terraform modules are roadmap items, not implied by the scripts today. |
+
+## Alignment (NIST CSF 2.0)
+
+The three components support the familiar **Govern / Identify / Protect / Detect / Respond / Recover** framing in a **descriptive** sense: they provide runnable patterns and documentation hooks; **your** organization defines policies, metrics, and sign-off.
+
 ## Who it is for
 
 - Engineering leads standardizing security and reliability across many SME-scale deployments  

@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+      - name: Run ShellCheck
+        run: shellcheck backup-dr/scripts/*.sh
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate identity-mfa compose
+        run: docker compose -f identity-mfa/docker-compose.yml config
+      - name: Validate logging-alerts compose
+        run: docker compose -f logging-alerts/docker-compose.yml config

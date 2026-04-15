@@ -6,6 +6,8 @@ This document lists **planned** work. The Accelerator **ships today** as Docker 
 
 - Tighten cross-component conventions (naming, env var contracts, health check patterns).
 - Expand per-component README quick starts for bring-your-own object storage and managed PostgreSQL.
+- **Backup + DR:** `mysqldump` / restore scripts mirroring the Postgres reference path.
+- **Logging + alerts:** version-pinned Kibana **NDJSON** exports (saved searches + dashboard) under `logging-alerts/dashboards/` for the Elastic Stack version pinned in `docker-compose.yml`.
 - Optional sample CI jobs (lint, image build, compose smoke) without mandating a single vendor pipeline.
 
 ## Terraform
