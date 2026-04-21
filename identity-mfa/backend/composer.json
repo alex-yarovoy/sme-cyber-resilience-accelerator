@@ -19,6 +19,7 @@
         "ext-redis": "*",
         "doctrine/doctrine-bundle": "^2.10",
         "doctrine/doctrine-migrations-bundle": "^3.2",
+        "doctrine/doctrine-fixtures-bundle": "^3.4",
         "doctrine/orm": "^2.15",
         "lexik/jwt-authentication-bundle": "^2.19",
         "gesdinet/jwt-refresh-token-bundle": "^1.1",
@@ -31,6 +32,7 @@
         "symfony/form": "6.4.*",
         "symfony/framework-bundle": "6.4.*",
         "symfony/http-client": "6.4.*",
+        "symfony/lock": "6.4.*",
         "symfony/mailer": "6.4.*",
         "symfony/monolog-bundle": "^3.8",
         "symfony/rate-limiter": "6.4.*",
@@ -39,24 +41,16 @@
         "symfony/security-csrf": "6.4.*",
         "symfony/serializer": "6.4.*",
         "symfony/translation": "6.4.*",
+        "symfony/uid": "6.4.*",
         "symfony/twig-bundle": "6.4.*",
         "symfony/validator": "6.4.*",
         "symfony/yaml": "6.4.*",
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0",
-        "firebase/php-jwt": "^6.10",
-        "web-auth/webauthn-symfony-bundle": "^4.9"
+        "firebase/php-jwt": "^6.11"
     },
     "require-dev": {
-        "codeception/c3": "^2.6",
-        "codeception/codeception": "^5.0",
-        "codeception/module-asserts": "^3.0",
-        "codeception/module-doctrine2": "^2.0",
-        "codeception/module-phpbrowser": "^2.0",
-        "codeception/module-rest": "^2.0",
-        "codeception/module-symfony": "^2.0",
-        "doctrine/doctrine-fixtures-bundle": "^3.4",
-        "phpunit/phpunit": "^9.5",
+        "phpunit/phpunit": "^10.5",
         "symfony/browser-kit": "6.4.*",
         "symfony/css-selector": "6.4.*",
         "symfony/debug-bundle": "6.4.*",
@@ -70,6 +64,9 @@
             "php-http/discovery": true,
             "symfony/flex": true,
             "symfony/runtime": true
+        },
+        "platform": {
+            "php": "8.2.30"
         },
         "sort-packages": true
     },

@@ -1,9 +1,8 @@
-version: '3.8'
 services:
   nginx:
     image: nginx:alpine
     ports:
-      - "8080:80"
+      - "8880:80"
     volumes:
       - ./backend/public:/var/www/html/public
       - ./backend:/var/www/html
@@ -17,6 +16,8 @@ services:
       - DATABASE_URL=postgresql://user:pass@postgres:5432/identity_mfa
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=dev_secret_change_me
+      # Set to 1 to attempt Doctrine fixtures on boot (may fail on some hosts; default stub skips).
+      - LOAD_LAB_FIXTURES=${LOAD_LAB_FIXTURES:-0}
     volumes:
       - ./backend:/var/www/html
     depends_on:

@@ -1,230 +1,92 @@
-# Identity + MFA System
+# Identity + MFA (lab reference)
 
-## Overview
+Symfony + Vue reference implementation for **account security**, **MFA (TOTP)**, **JWT sessions**, **rate limiting**, and **audit-friendly** authentication events. Intended for **local / lab** use and as a forkable baseline—not a certified compliance product.
 
-A comprehensive Identity and Multi-Factor Authentication (MFA) system built with Symfony 6, designed for enterprise-grade security and scalability. This system provides secure user authentication with multiple verification factors, JWT token management, and comprehensive audit logging.
+## Quick start (Docker, recommended)
 
-## Business Value
-
-- **Enhanced Security**: Multi-factor authentication reduces account compromise by 99.9%
-- **Compliance Ready**: Meets SOC2, GDPR, and HIPAA requirements
-- **Scalable Architecture**: Handles 10,000+ concurrent users with Redis caching
-- **Cost Effective**: Reduces security incidents and associated costs by 85%
-- **Developer Friendly**: Clean APIs and comprehensive documentation
-
-## Key Features
-
-### Authentication & Authorization
-- JWT-based stateless authentication
-- Custom Symfony Security Provider
-- Role-based access control (RBAC)
-- Session management with Redis
-- Rate limiting and brute force protection
-
-### Multi-Factor Authentication
-- TOTP (Time-based One-Time Password) support
-- Google Authenticator integration
-- Email-based OTP fallback
-- Backup recovery codes
-- MFA bypass for trusted devices
-
-### Security Features
-- Password hashing with Argon2
-- CSRF protection
-- XSS prevention
-- SQL injection protection
-- Audit logging for all security events
-- IP whitelisting and geolocation tracking
-
-### Admin Interface
-- Vue.js 3 + TypeScript admin panel
-- Real-time user management
-- Security event monitoring
-- MFA policy configuration
-- Audit log viewer
-
-## Technology Stack
-
-### Backend
-- **Framework**: Symfony 6.4 (PHP 8.1+)
-- **Database**: PostgreSQL 14+
-- **Cache**: Redis 7+
-- **Authentication**: LexikJWTAuthenticationBundle
-- **MFA**: scheb/2fa-bundle
-- **Testing**: PHPUnit + Codeception
-
-### Frontend
-- **Framework**: Vue.js 3 + TypeScript
-- **UI Library**: Vuetify 3
-- **State Management**: Pinia
-- **HTTP Client**: Axios
-- **Build Tool**: Vite
-
-### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Orchestration**: Kubernetes (production)
-- **Monitoring**: Sentry + New Relic
-- **CI/CD**: GitHub Actions
-
-## Quick Start
-
-### Prerequisites
-- PHP 8.1+
-- Composer
-- Node.js 18+
-- PostgreSQL 14+
-- Redis 7+
-- Docker & Docker Compose
-
-### Installation
-
-**Secrets and keys:** Do not commit `.env` or `config/jwt/*.pem` (they are listed in `.gitignore`). Copy `backend/.env.example` to `.env`, then generate Lexik RSA keys if the files are missing:
+From `identity-mfa/`:
 
 ```bash
+docker compose build --no-cache php
+docker compose up -d
+```
+
+The `php` image entrypoint will:
+
+1. Create a **minimal `.env`** for Docker (Postgres/Redis hostnames, `MAILER_DSN=null`) if missing  
+2. Generate Lexik **JWT PEM keys** if missing  
+3. Run `composer install` (**`--no-scripts`** on boot to reduce Flex/recipe variance)  
+4. Wait for Postgres, run **migrations**  
+5. **Stub:** Doctrine **fixtures are skipped by default** (`LOAD_LAB_FIXTURES=0`). Load lab users when you want a full login flow:
+
+```bash
+docker compose exec php php bin/console doctrine:fixtures:load --no-interaction --purge-with-truncate
+```
+
+If that command fails in your environment, use the pseudocode SQL stub: [`backend/scripts/seed-lab-users.sql.stub`](backend/scripts/seed-lab-users.sql.stub). Repo-wide stub notes: [`../docs/PHASE0_STUBS.md`](../docs/PHASE0_STUBS.md).
+
+Optional: set `LOAD_LAB_FIXTURES=1` in the environment before `up` to **attempt** fixtures on boot (failures are logged and **php-fpm still starts**).
+
+**Application:** [http://localhost:8880](http://localhost:8880) (nginx → PHP; host port **8880** avoids common collisions with `8080`).
+
+### Lab credentials (after fixtures load)
+
+| Role  | Email             | Password       |
+|-------|-------------------|----------------|
+| Admin | admin@example.com | `Admin#123456` |
+| User  | user@example.com  | `User#12345678` |
+
+Stop: `docker compose down` (add `-v` to drop the Postgres volume).
+
+## Quick start (host PHP / without Docker)
+
+Requires PHP 8.2+, Composer, Node 18+, Postgres 14+, Redis 7+.
+
+```bash
+cd backend
+composer install
+cp .env.example .env
+# Set DATABASE_URL / REDIS_URL for your host; generate JWT keys (see old handbook or openssl commands in repo history)
 mkdir -p config/jwt
 openssl genpkey -algorithm RSA -out config/jwt/private.pem -pkeyopt rsa_keygen_bits:2048
 openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
-```
+php bin/console doctrine:migrations:migrate --no-interaction
+php bin/console doctrine:fixtures:load --no-interaction --purge-with-truncate
 
-1. **Clone and setup backend**:
-```bash
-cd identity-mfa/backend
-composer install
-cp .env.example .env
-# Configure database and Redis settings
-php bin/console doctrine:database:create
-php bin/console doctrine:migrations:migrate
-php bin/console doctrine:fixtures:load
-```
-
-2. **Setup frontend**:
-```bash
-cd identity-mfa/frontend
-npm install
-cp .env.example .env.local
-# Configure API endpoint
+cd ../frontend
+npm ci
+cp .env.example .env.local   # point VITE_API_URL at your backend
 npm run dev
 ```
 
-3. **Run with Docker**:
-```bash
-docker-compose up -d
-```
+## What this kit demonstrates
 
-### Default Credentials
-- **Admin**: admin@example.com / admin123
-- **Test User**: user@example.com / user123
+- Password hashing (Argon2), CSRF on session flows, structured **audit log** hooks  
+- MFA enrollment patterns (scheb/2fa), JWT issuance (Lexik), refresh-token table  
+- Rate limiting and brute-force resistance (Symfony rate limiter)  
+- Vue 3 + Vite admin UI for login / MFA flows  
 
-## API Documentation
+## What it does **not** claim
 
-### Authentication Endpoints
+This repository is **not** accompanied by SOC 2, HIPAA, or GDPR certification. Controls are implemented as **patterns** you can extend under your own compliance program.
 
-#### POST /api/auth/login
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
+## API (sketch)
 
-#### POST /api/auth/mfa/verify
-```json
-{
-  "token": "jwt_token",
-  "code": "123456"
-}
-```
+- `POST /api/auth/login` — JSON `email`, `password`  
+- MFA and refresh endpoints — see `backend/src/Controller/` for current routes  
 
-#### POST /api/auth/refresh
-```json
-{
-  "refresh_token": "refresh_token"
-}
-```
+## Stack
 
-### User Management Endpoints
+| Layer    | Technology                          |
+|----------|-------------------------------------|
+| Backend  | Symfony 6.4, PHP 8.2, PostgreSQL 14 |
+| Cache    | Redis 7                             |
+| Frontend | Vue 3, TypeScript, Vite             |
+| Edge     | nginx (Compose lab only)            |
 
-#### GET /api/users
-- **Headers**: `Authorization: Bearer {jwt_token}`
-- **Response**: List of users with pagination
+## Further reading
 
-#### POST /api/users
-- **Body**: User creation data
-- **Response**: Created user object
+- [ARCHITECTURE.md](ARCHITECTURE.md) — component and data-flow notes  
+- Parent monorepo [README.md](../README.md) — NIST CSF mapping and Phase 0 scope  
 
-## Security Considerations
-
-### Password Policy
-- Minimum 12 characters
-- Must contain uppercase, lowercase, numbers, and symbols
-- Password history prevention (last 5 passwords)
-- Account lockout after 5 failed attempts
-
-### MFA Configuration
-- TOTP window: 30 seconds
-- Backup codes: 10 single-use codes
-- Trusted device duration: 30 days
-- MFA required for admin accounts
-
-### Rate Limiting
-- Login attempts: 5 per minute per IP
-- MFA attempts: 3 per minute per user
-- API calls: 100 per minute per user
-- Password reset: 3 per hour per email
-
-## Performance Metrics
-
-- **Response Time**: < 200ms for authentication
-- **Throughput**: 1000+ requests/second
-- **Availability**: 99.9% uptime
-- **Concurrent Users**: 10,000+ supported
-
-## Compliance
-
-### SOC2 Type II
-- Access controls and authentication
-- System monitoring and logging
-- Data encryption in transit and at rest
-- Incident response procedures
-
-### GDPR
-- Data minimization and purpose limitation
-- User consent management
-- Right to erasure implementation
-- Data portability features
-
-### HIPAA
-- Administrative safeguards
-- Physical safeguards
-- Technical safeguards
-- Audit controls and documentation
-
-## Monitoring & Alerting
-
-### Key Metrics
-- Authentication success/failure rates
-- MFA adoption rates
-- Failed login attempts
-- Token expiration patterns
-- System performance metrics
-
-### Alerts
-- Multiple failed login attempts
-- Unusual authentication patterns
-- System performance degradation
-- Security policy violations
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## Support
-
-For technical support or questions:
-- Email: support@identity-mfa.com
-- Documentation: https://docs.identity-mfa.com
-- Issues: GitHub Issues
+Issues and PRs: keep changes reproducible from a clean checkout.

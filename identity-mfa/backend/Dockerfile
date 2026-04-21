@@ -6,12 +6,15 @@ RUN apt-get update && apt-get install -y \
     && pecl install redis \
     && docker-php-ext-enable redis
 
-WORKDIR /var/www/html
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-COPY . /var/www/html
-RUN composer install --no-interaction --prefer-dist --no-scripts || true
+COPY docker-entrypoint.sh /usr/local/bin/sme-entrypoint.sh
+RUN chmod +x /usr/local/bin/sme-entrypoint.sh
 
+WORKDIR /var/www/html
+COPY . /var/www/html
+
+ENTRYPOINT ["/usr/local/bin/sme-entrypoint.sh"]
 CMD ["php-fpm"]
 
 
