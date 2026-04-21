@@ -16,7 +16,7 @@ services:
       - DATABASE_URL=postgresql://user:pass@postgres:5432/identity_mfa
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=dev_secret_change_me
-      # Set to 1 to attempt Doctrine fixtures on boot (may fail on some hosts; default stub skips).
+      # Set to 1 to run Doctrine fixtures on boot (optional; default skips for predictable restarts).
       - LOAD_LAB_FIXTURES=${LOAD_LAB_FIXTURES:-0}
     volumes:
       - ./backend:/var/www/html

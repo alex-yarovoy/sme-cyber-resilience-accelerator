@@ -1,8 +1,8 @@
-# Backup + DR drill kit
+# Backup + DR
 
-Reference **shell automation** for **PostgreSQL** logical backups, **client-side encryption** of dump files, optional **off-site copy** via a hook you provide, and a **disaster-recovery drill** that restores into an ephemeral container and writes a short report.
+**Shell automation** for **PostgreSQL** logical backups, **client-side encryption** of dump files, optional **off-site copy** via a hook you provide, and a **disaster-recovery drill** that restores into an ephemeral container and writes a short report.
 
-## What is implemented in this repo (Phase 0)
+## What ships in this directory
 
 | Piece | Purpose |
 |--------|---------|
@@ -21,7 +21,7 @@ Reference **shell automation** for **PostgreSQL** logical backups, **client-side
 
 ## RTO / RPO
 
-The kit uses **placeholders you set** with your stakeholders. Example targets often used with SMEs (not enforced by scripts):
+**RTO** and **RPO** are targets **your organization** agrees with stakeholders and encodes in runbooks and monitoring—the scripts help you **record drill duration** in the generated report. Example targets teams often track (not enforced by scripts):
 
 - **RTO:** 4 h  
 - **RPO:** 1 h  

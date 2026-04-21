@@ -6,7 +6,7 @@ Vendor-agnostic centralized logging and alerting stack using Filebeat → Elasti
 
 - **Filebeat:** log shipping from files under `./configs/logs/`
 - **Elasticsearch:** log storage and indexing
-- **Kibana:** dashboards and search (use Discover in Phase 0; see below)
+- **Kibana:** dashboards and search (**Discover** workflow below; curated NDJSON exports are on [ROADMAP.md](../ROADMAP.md))
 - **Prometheus:** metrics scraping
 - **Alertmanager:** alert routing and escalation
 
@@ -55,4 +55,4 @@ Example rules live under [`alert-rules/`](alert-rules/) (auth-focused samples). 
 
 ## Dashboards
 
-There are **no committed NDJSON exports** in Phase 0. Use Discover as above, or read [`dashboards/README.md`](dashboards/README.md) for the roadmap for saved objects.
+Version-pinned **NDJSON** exports for dashboards are tracked on **[ROADMAP.md](../ROADMAP.md)**. Until those land, build views in **Discover** as above, or read [`dashboards/README.md`](dashboards/README.md) for the saved-object plan.

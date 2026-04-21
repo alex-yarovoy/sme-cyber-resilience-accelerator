@@ -37,14 +37,13 @@ done
 
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
-# Lab fixtures are STUBBED by default (Phase 0): avoids brittle bootstrap in varied environments.
-# See repository docs/PHASE0_STUBS.md and backend/scripts/seed-lab-users.sql.stub
+# Optional Doctrine fixtures for lab users. Default is off so restarts stay non-destructive.
 if [ "${LOAD_LAB_FIXTURES:-0}" = "1" ]; then
   php bin/console doctrine:fixtures:load --no-interaction --purge-with-truncate || {
-    echo "[stub] doctrine:fixtures:load failed; use manual command or SQL stub. Continuing with php-fpm."
+    echo "doctrine:fixtures:load failed; load fixtures manually if needed. Continuing with php-fpm." >&2
   }
 else
-  echo "[stub] Skipping fixtures (LOAD_LAB_FIXTURES!=1). One-shot: docker compose exec php php bin/console doctrine:fixtures:load --no-interaction --purge-with-truncate"
+  echo "Fixtures skipped (LOAD_LAB_FIXTURES!=1). To load once: docker compose exec php php bin/console doctrine:fixtures:load --no-interaction --purge-with-truncate"
 fi
 
 exec docker-php-entrypoint "$@"
