@@ -10,12 +10,12 @@ class RiskScoringService
     {
         $score = 0;
 
-        // Geo-velocity (placeholder: if country changed between logins, add risk)
+        // Geo-velocity: country change since last successful session increases risk
         if (($context['country_changed'] ?? false) === true) {
             $score += 40;
         }
 
-        // ASN / datacenter IPs (placeholder)
+        // Hosting / datacenter ASN detection signal from upstream context
         if (($context['is_hosting_asn'] ?? false) === true) {
             $score += 30;
         }

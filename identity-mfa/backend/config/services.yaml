@@ -10,6 +10,7 @@ services:
         bind:
             string $jwtSecret: '%jwt_secret%'
             string $jwtAlgorithm: '%jwt_algorithm%'
+            Symfony\Component\RateLimiter\Storage\StorageInterface $storage: '@limiter.storage.login'
 
     App\:
         resource: '../src/'
