@@ -7,10 +7,3 @@ scheb_two_factor:
             digits: 6
             window: 1
         template: 'security/two_factor.html.twig'
-    trusted_device:
-        enabled: true
-        lifetime: 2592000   # 30 days
-    backup_codes:
-        enabled: true
-
-
