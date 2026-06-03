@@ -40,9 +40,6 @@ security:
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/refresh, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/mfa, roles: PUBLIC_ACCESS }
-        - { path: ^/api/webauthn/options, roles: PUBLIC_ACCESS }
-        - { path: ^/api/webauthn/register$, roles: ROLE_USER }
-        - { path: ^/api/webauthn/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: ROLE_USER }
 
 
