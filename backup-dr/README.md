@@ -9,12 +9,11 @@
 | [`scripts/backup_postgres.sh`](scripts/backup_postgres.sh) | `pg_dump` → gzip under `backups/`, plus `sha256sum` sidecar |
 | [`scripts/encrypt_backup.sh`](scripts/encrypt_backup.sh) / [`decrypt_backup.sh`](scripts/decrypt_backup.sh) | OpenSSL AES-256-CBC with PBKDF2 (`BACKUP_ENC_PASS`) |
 | [`scripts/restore_postgres.sh`](scripts/restore_postgres.sh) | Destructive restore into an existing Postgres (`DROP SCHEMA public CASCADE`) — **lab only** |
+| [`scripts/backup_mysql.sh`](scripts/backup_mysql.sh) / [`restore_mysql.sh`](scripts/restore_mysql.sh) | `mysqldump` → gzip and restore (same env contract as Postgres: `DB_HOST`, `DB_USER`, `DB_NAME`, optional `DB_PASSWORD`) |
 | [`scripts/dr_drill.sh`](scripts/dr_drill.sh) | End-to-end drill: temporary `postgres:14` container → restore from `.sql.gz` → sanity SQL → `reports/` text report |
 | [`tests/dr_sanity.sh`](tests/dr_sanity.sh) | Minimal connectivity check when `DB_*` env vars are set |
 
 ## What is not in this repo yet (see [ROADMAP.md](../ROADMAP.md))
-
-- **MySQL/MariaDB** dumps and restores (same pattern; scripts not shipped here).
 - **File-system / volume-level** backups (only database dumps today).
 - **S3 Object Lock (WORM)** and **KMS** integration — document as MSP/cloud wiring; no Terraform modules in-tree until roadmap ships them.
 - **ClamAV scanning** of restored data — optional: if `clamscan` is on `PATH` and you set `CLAMAV_SCAN=1`, `dr_drill.sh` runs it after restore (best-effort; skips if binary missing).

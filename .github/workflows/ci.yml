@@ -24,3 +24,58 @@ jobs:
         run: docker compose -f identity-mfa/docker-compose.yml config
       - name: Validate logging-alerts compose
         run: docker compose -f logging-alerts/docker-compose.yml config
+
+  phpunit:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: identity_mfa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user -d identity_mfa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: ctype, iconv, json, pdo, pdo_pgsql, redis
+          coverage: none
+      - name: Install Composer dependencies
+        working-directory: identity-mfa/backend
+        run: composer install --no-interaction --prefer-dist --no-scripts
+      - name: Generate JWT keys for tests
+        working-directory: identity-mfa/backend
+        run: |
+          mkdir -p config/jwt
+          openssl genpkey -algorithm RSA -out config/jwt/private.pem -pkeyopt rsa_keygen_bits:2048
+          openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
+      - name: Create test database
+        run: PGPASSWORD=pass psql -h 127.0.0.1 -U user -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'identity_mfa_test'" | grep -q 1 || PGPASSWORD=pass psql -h 127.0.0.1 -U user -d postgres -c "CREATE DATABASE identity_mfa_test;"
+      - name: Run PHPUnit
+        working-directory: identity-mfa/backend
+        env:
+          APP_ENV: test
+        run: vendor/bin/phpunit
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform validate (example environment)
+        working-directory: terraform/environments/example
+        run: |
+          terraform init -backend=false
+          terraform validate
