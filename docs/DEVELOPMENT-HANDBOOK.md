@@ -45,6 +45,8 @@ Deliver **production-style baselines** for small and mid-sized teams and MSPs on
 ├── identity-mfa/
 ├── logging-alerts/
 ├── backup-dr/
+├── terraform/          # cloud-neutral skeleton (validate only in CI)
+├── kubernetes/         # Kustomize templates (identity-mfa first)
 └── docs/
     └── DEVELOPMENT-HANDBOOK.md   # this file
 ```
@@ -66,7 +68,7 @@ Deliver **production-style baselines** for small and mid-sized teams and MSPs on
 | HTTP | Nginx → PHP-FPM | [`docker-compose.yml`](../identity-mfa/docker-compose.yml), [`configs/nginx.conf`](../identity-mfa/configs/nginx.conf); API under `/api/`. |
 | Backend | Symfony 6.4, PHP ≥ 8.1 | [`backend/composer.json`](../identity-mfa/backend/composer.json). |
 | Auth | Lexik JWT, Gesdinet refresh bundle, scheb/2fa TOTP | User entity implements `TwoFactorInterface`. |
-| Passkeys | `web-auth/webauthn-symfony-bundle` | Thin wrapper [`WebAuthnController`](../identity-mfa/backend/src/Controller/WebAuthnController.php). |
+| Passkeys | Client + API contract | [`frontend/src/webauthn.ts`](../identity-mfa/frontend/src/webauthn.ts) (browser ceremony); [`WebAuthnController`](../identity-mfa/backend/src/Controller/WebAuthnController.php) returns **503** until server credential storage is configured for your deployment profile. |
 | Data | PostgreSQL 14, Redis 7 | UUID users; migrations under `backend/migrations/`. |
 | Frontend | Vue 3, Vite, Pinia, Axios, Vuetify | Admin shell in [`frontend/src/App.vue`](../identity-mfa/frontend/src/App.vue). |
 
@@ -80,7 +82,7 @@ Deliver **production-style baselines** for small and mid-sized teams and MSPs on
 
 **Services of note:**
 
-- [`JwtTokenService`](../identity-mfa/backend/src/Service/JwtTokenService.php) — HS256-style secret from params; MFA and refresh payloads; **token denylist** currently returns `false` for `isTokenBlacklisted` until Redis-backed revocation is wired (see §7 D3).  
+- [`JwtTokenService`](../identity-mfa/backend/src/Service/JwtTokenService.php) — JWT payloads; **Redis-backed denylist** via [`TokenDenylistService`](../identity-mfa/backend/src/Service/TokenDenylistService.php) (no-op when Redis extension or server unavailable).  
 - [`RiskScoringService`](../identity-mfa/backend/src/Service/RiskScoringService.php) — **context-based** scoring from `$context` flags; optional IP reputation or device signals are extension points for a later iteration.  
 - [`AuditLogger`](../identity-mfa/backend/src/Service/AuditLogger.php), [`RateLimiterService`](../identity-mfa/backend/src/Service/RateLimiterService.php), [`RefreshTokenGenerator`](../identity-mfa/backend/src/Service/RefreshTokenGenerator.php).
 
@@ -96,7 +98,8 @@ Deliver **production-style baselines** for small and mid-sized teams and MSPs on
 ### 3.3 Frontend notes
 
 - [`App.vue`](../identity-mfa/frontend/src/App.vue) is a **focused** login → MFA → “logged in” flow with default dev credentials for local use.  
-- Client-side WebAuthn ceremony: finish per W3C WebAuthn (ArrayBuffer handling and `navigator.credentials`) when exposing passkeys in the SPA.  
+- Client-side WebAuthn: [`webauthn.ts`](../identity-mfa/frontend/src/webauthn.ts) — register/login flow against `/api/webauthn/*`; server side is profile-dependent (see §7 D5).  
+- Production static assets: `npm run build` in `frontend/` → nginx serves `frontend/dist/` (Compose volume in `docker-compose.yml`).  
 - [`http.ts`](../identity-mfa/frontend/src/http.ts) uses `baseURL: '/api'` — assumes dev proxy or same-origin Nginx serving both SPA and API.
 
 ### 3.4 How to run (development)
@@ -130,11 +133,11 @@ npm install
 npm run dev
 ```
 
-Vite dev server must proxy `/api` to the backend (or use Nginx-served build) — **verify `vite.config` proxy** if API calls fail from `localhost:5173`.
+Vite dev server proxies `/api` to port **8880** (see [`vite.config.ts`](../identity-mfa/frontend/vite.config.ts)).
 
 ### 3.5 Tests
 
-`backend/tests/` is **empty** in the current tree; `composer.json` includes PHPUnit and Codeception. **Backlog:** add API functional tests for login, MFA, refresh, and WebAuthn happy paths.
+`backend/tests/` contains PHPUnit **scaffold** (metrics unit test, health/metrics HTTP smoke, auth controller tests). CI runs `vendor/bin/phpunit` with Postgres + Redis services. Full green auth integration may require follow-up (schema bootstrap for `refresh_tokens`, local PHP extensions). See §7 and [ROADMAP.md](../ROADMAP.md).
 
 ---
 
@@ -147,21 +150,21 @@ Docker Compose stack ([`docker-compose.yml`](../logging-alerts/docker-compose.ym
 - Elasticsearch 8.12.2 (single-node, **security disabled** for local dev).  
 - Kibana 8.12.2.  
 - Filebeat 8.12.2 mounting [`configs/filebeat.yml`](../logging-alerts/configs/filebeat.yml) and host path `./configs/logs/` as `/var/log/app/`.  
-- Prometheus 2.53 + Alertmanager 0.27.
+- Prometheus 2.53 + Alertmanager 0.27; **nginx-health** + **blackbox-exporter** for synthetic uptime checks.  
 
 **Configs:**
 
 - [`filebeat.yml`](../logging-alerts/configs/filebeat.yml) — JSON logs from `/var/log/app/*.log`.  
-- [`prometheus.yml`](../logging-alerts/configs/prometheus.yml) — self-scrape + **blackbox** job targeting `nginx:80`.  
+- [`prometheus.yml`](../logging-alerts/configs/prometheus.yml) — self-scrape, blackbox probe of `nginx-health`, optional `identity_mfa` job → `host.docker.internal:8880/api/metrics` when identity stack runs on the host.  
 - [`alertmanager.yml`](../logging-alerts/configs/alertmanager.yml) — receivers (review file).  
 - [`ingest-pipeline.json`](../logging-alerts/configs/ingest-pipeline.json) — PII-oriented ingest (per [`architecture.md`](../logging-alerts/architecture.md)).  
-- [`alert-rules/auth.rules.yml`](../logging-alerts/alert-rules/auth.rules.yml) — expects metrics `app_auth_login_failed_total`, `app_auth_mfa_failed_total` — **these series are not produced by this compose file** unless an instrumented app exports them.
+- [`alert-rules/auth.rules.yml`](../logging-alerts/alert-rules/auth.rules.yml) — expects `app_auth_login_failed_total`, `app_auth_mfa_failed_total` from identity [`AuthMetricsService`](../identity-mfa/backend/src/Service/AuthMetricsService.php).
 
-### 4.2 Known integration gaps
+### 4.2 Integration notes
 
-1. **No `nginx` service** in this compose — Prometheus blackbox target `nginx:80` will fail until you add an nginx service or change targets.  
-2. **Metrics from identity component** are not wired — connect Symfony/Prometheus exporter or pushgateway in a future iteration.  
-3. Elasticsearch `xpack.security.enabled=false` is **dev only**; document hardening for any non-local use.
+1. **Blackbox target** — `nginx-health` service satisfies the blackbox job (D6 **Done**).  
+2. **Identity metrics** — scrape identity on host port **8880** while both stacks run, or adjust targets for your network (D7 **Done** at exposition layer).  
+3. Elasticsearch `xpack.security.enabled=false` is **dev only**; see `logging-alerts/README.md` for hardening steps.
 
 ### 4.3 How to run
 
@@ -190,6 +193,7 @@ Ports: Elasticsearch `9200`, Kibana `5601`, Prometheus `9090`, Alertmanager `909
 | Asset | Role |
 |-------|------|
 | [`scripts/backup_postgres.sh`](../backup-dr/scripts/backup_postgres.sh) | `pg_dump` → gzip under `backups/`, SHA256 sidecar. Env: `DB_HOST`, `DB_USER`, `DB_NAME`. |
+| [`scripts/backup_mysql.sh`](../backup-dr/scripts/backup_mysql.sh) / [`restore_mysql.sh`](../backup-dr/scripts/restore_mysql.sh) | Same env contract as Postgres; uses `MYSQL_PWD` when `DB_PASSWORD` is set. |
 | [`scripts/restore_postgres.sh`](../backup-dr/scripts/restore_postgres.sh) | Restore pipeline (read script for exact usage). |
 | [`scripts/encrypt_backup.sh`](../backup-dr/scripts/encrypt_backup.sh) | `openssl enc -aes-256-cbc -pbkdf2`; requires `BACKUP_ENC_PASS`. |
 | [`scripts/decrypt_backup.sh`](../backup-dr/scripts/decrypt_backup.sh) | Decrypt companion. |
@@ -199,11 +203,11 @@ Ports: Elasticsearch `9200`, Kibana `5601`, Prometheus `9090`, Alertmanager `909
 
 ### 5.2 Portability note
 
-`dr_drill.sh` uses `date -d @$START` for report timestamps — **GNU date** syntax. On **macOS BSD `date`**, this fails; use GNU `gdate` or replace with portable formatting (`date -r "$START"` on macOS). **Track as cross-platform fix.**
+`dr_drill.sh` uses portable UTC timestamps via `epoch_utc()` (Python 3 or GNU/BSD `date` fallback). D8 **Done**.
 
 ### 5.3 README claims versus repo
 
-Root [`backup-dr/README.md`](../backup-dr/README.md) mentions MySQL scripts, S3 Object Lock, ClamAV — **verify** each exists under `scripts/` before claiming in external docs; as of handbook authorship, the **listed scripts above** are the core verified set.
+Root [`backup-dr/README.md`](../backup-dr/README.md) lists Postgres, MySQL, encrypt, and drill scripts. S3 Object Lock and ClamAV remain on [ROADMAP.md](../ROADMAP.md).
 
 ### 5.4 Ideas for next steps
 
@@ -215,6 +219,15 @@ Root [`backup-dr/README.md`](../backup-dr/README.md) mentions MySQL scripts, S3 
 ---
 
 ## 6. Cross-component consistency conventions
+
+| Variable / endpoint | Identity | Logging | Backup |
+|---------------------|----------|---------|--------|
+| `DB_HOST`, `DB_USER`, `DB_NAME` | Postgres in compose | — | Postgres/MySQL scripts |
+| `DB_PASSWORD` / `MYSQL_PWD` | via `DATABASE_URL` | — | optional for MySQL scripts |
+| `REDIS_URL` | denylist + cache | — | — |
+| Log fields `timestamp`, `level`, `service`, `message` | app JSON logs → Filebeat path | Filebeat ingest | — |
+| Health | `GET /api/health` | ES `/_cluster/health`, nginx-health | — |
+| Metrics | `GET /api/metrics` (Prometheus text) | Prometheus self + blackbox | — |
 
 When extending any component:
 
@@ -232,12 +245,12 @@ When extending any component:
 |----|------|-------------|---------------|
 | D1 | identity-mfa | ~~`routes.yaml` duplicate refresh route~~ | **Done:** only `AuthController::refresh` serves `POST /api/auth/refresh`; Gesdinet YAML route removed. Refresh uses persisted Gesdinet `RefreshToken` rows from `RefreshTokenGenerator`. |
 | D2 | identity-mfa | ~~`PUBLIC_ACCESS` for refresh~~ | **Done:** `access_control` includes `^/api/auth/refresh`; login firewall pattern narrowed to `^/api/auth/(login|refresh|mfa(/.*)?)$` so `/api/auth/me` and `/api/auth/logout` use the JWT `api` firewall. |
-| D3 | identity-mfa | JWT blacklist and refresh rotation not backed by Redis despite comments. | Implement Redis-backed denylist and refresh family ID. |
+| D3 | identity-mfa | JWT blacklist and refresh rotation not backed by Redis despite comments. | **Done:** Redis denylist via `TokenDenylistService` (graceful no-op without Redis). |
 | D4 | identity-mfa | `RiskScoringService` uses only static context flags. | Integrate optional IP reputation or device cookie with safe defaults. |
-| D5 | identity-mfa | WebAuthn frontend incomplete. | Complete CBOR/ArrayBuffer handling; align with bundle expected JSON. |
-| D6 | logging-alerts | Prometheus scrapes `nginx:80` but no nginx in compose. | Add service or remove job until defined. |
-| D7 | logging-alerts | Alert metrics not emitted. | Instrument the identity app or add a small Prometheus exporter that emits the series expected by rules. |
-| D8 | backup-dr | GNU `date` in drill report. | Portable date or document Linux-only. |
+| D5 | identity-mfa | WebAuthn frontend incomplete. | **Partial:** client `webauthn.ts` + API routes; server credential store **deployment profile TBD**. |
+| D6 | logging-alerts | Prometheus scrapes `nginx:80` but no nginx in compose. | **Done:** `nginx-health` + blackbox-exporter. |
+| D7 | logging-alerts | Alert metrics not emitted. | **Done:** identity `/api/metrics`; scrape via `host.docker.internal:8880` when identity runs on host. |
+| D8 | backup-dr | GNU `date` in drill report. | **Done:** portable `epoch_utc()` in `dr_drill.sh`. |
 | D9 | docs | `identity-mfa/README.md` contains strong marketing metrics. | Harmonize with evidence-backed wording or mark as design targets. |
 
 ---
@@ -252,16 +265,16 @@ When extending any component:
 
 **P1 — credibility and maintainability**
 
-4. PHPUnit or Codeception tests for AuthController paths.  
-5. Wire the first set of Prometheus metrics from the identity component to satisfy `auth.rules.yml` or narrow rules to existing metrics.  
-6. Fix `dr_drill.sh` portability (D8).
+4. PHPUnit scaffold for AuthController paths — **CI integration may need follow-up**.  
+5. ~~Wire Prometheus metrics from identity (D7).~~ **Done.**  
+6. ~~Fix `dr_drill.sh` portability (D8).~~ **Done.**
 
 **P2 — product completeness**
 
-7. Finish WebAuthn E2E (D5).  
-8. Vite proxy and production build story for Vue + Nginx.  
-9. MySQL backup or restore sibling scripts in backup-dr.  
-10. Reconcile `ARCHITECTURE.md` with actual classes or split into `ARCHITECTURE-TARGET.md` vs `CURRENT.md`.
+7. WebAuthn E2E (D5) — client shipped; server store TBD.  
+8. ~~Vite proxy and production build for Vue + Nginx.~~ **Done** (build + compose volume).  
+9. ~~MySQL backup/restore scripts.~~ **Done.**  
+10. Reconcile `ARCHITECTURE.md` with actual classes or split into target vs current doc.
 
 ---
 
@@ -281,4 +294,4 @@ Do not assume features exist unless the handbook or code shows them. Prefer smal
 
 Primary maintainer: **Alexander Yarovoy**.
 
-**Document version:** 1.0 (update when the tree materially changes.)
+**Document version:** 1.1 (terraform/kubernetes skeletons, metrics, MySQL scripts, handbook debt table updated.)

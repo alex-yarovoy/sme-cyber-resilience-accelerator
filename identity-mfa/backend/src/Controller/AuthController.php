@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Service\AuditLogger;
+use App\Service\AuthMetricsService;
 use App\Service\JwtTokenService;
 use App\Service\RefreshTokenGenerator;
 use App\Service\RateLimiterService;
@@ -36,7 +37,8 @@ class AuthController extends AbstractController
         private AuditLogger $auditLogger,
         private RateLimiterService $rateLimiterService,
         private ValidatorInterface $validator,
-        private RiskScoringService $riskScoring
+        private RiskScoringService $riskScoring,
+        private AuthMetricsService $authMetrics,
     ) {}
 
     #[Route('/login', name: 'login', methods: ['POST'])]
@@ -110,6 +112,7 @@ class AuthController extends AbstractController
             return $this->json($response);
 
         } catch (UserNotFoundException|BadCredentialsException $e) {
+            $this->authMetrics->recordLoginFailure();
             $this->auditLogger->log('LOGIN_FAILED', null, $clientIp, $request->headers->get('User-Agent'), [
                 'email' => $data['email'],
                 'error' => $e->getMessage()
@@ -165,6 +168,7 @@ class AuthController extends AbstractController
                     ]
                 ]);
             } else {
+                $this->authMetrics->recordMfaFailure();
                 $this->auditLogger->log('MFA_FAILED', $user, $request->getClientIp(), $request->headers->get('User-Agent'), [
                     'code_attempted' => $data['code']
                 ]);
@@ -253,7 +257,17 @@ class AuthController extends AbstractController
     public function logout(Request $request): JsonResponse
     {
         $user = $this->getUser();
-        
+        $authorization = $request->headers->get('Authorization', '');
+
+        if (str_starts_with($authorization, 'Bearer ')) {
+            $token = substr($authorization, 7);
+            try {
+                $this->jwtTokenService->blacklistToken($token);
+            } catch (\InvalidArgumentException) {
+                // Ignore malformed tokens on logout.
+            }
+        }
+
         if ($user) {
             $this->auditLogger->log('LOGOUT', $user, $request->getClientIp(), $request->headers->get('User-Agent'));
         }

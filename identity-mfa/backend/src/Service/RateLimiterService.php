@@ -16,24 +16,24 @@ class RateLimiterService
     public function isAllowed(string $type, string $key): bool
     {
         $rateLimiter = $this->getRateLimiter($type);
-        $limit = $rateLimiter->consume($key);
-        
+        $limit = $rateLimiter->create($key)->consume();
+
         return $limit->isAccepted();
     }
 
     public function getRemainingAttempts(string $type, string $key): int
     {
         $rateLimiter = $this->getRateLimiter($type);
-        $limit = $rateLimiter->consume($key);
-        
+        $limit = $rateLimiter->create($key)->consume();
+
         return $limit->getRemainingTokens();
     }
 
     public function getResetTime(string $type, string $key): ?\DateTimeImmutable
     {
         $rateLimiter = $this->getRateLimiter($type);
-        $limit = $rateLimiter->consume($key);
-        
+        $limit = $rateLimiter->create($key)->consume();
+
         return $limit->getRetryAfter();
     }
 
@@ -60,31 +60,37 @@ class RateLimiterService
     {
         return match ($type) {
             'login' => [
+                'id' => 'login',
                 'policy' => 'token_bucket',
                 'limit' => 5,
                 'interval' => '1 minute',
             ],
             'mfa' => [
+                'id' => 'mfa',
                 'policy' => 'token_bucket',
                 'limit' => 3,
                 'interval' => '1 minute',
             ],
             'password_reset' => [
+                'id' => 'password_reset',
                 'policy' => 'token_bucket',
                 'limit' => 3,
                 'interval' => '1 hour',
             ],
             'api' => [
+                'id' => 'api',
                 'policy' => 'token_bucket',
                 'limit' => 100,
                 'interval' => '1 minute',
             ],
             'registration' => [
+                'id' => 'registration',
                 'policy' => 'token_bucket',
                 'limit' => 3,
                 'interval' => '1 hour',
             ],
             default => [
+                'id' => 'default',
                 'policy' => 'token_bucket',
                 'limit' => 10,
                 'interval' => '1 minute',
