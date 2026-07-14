@@ -24,6 +24,14 @@ security:
             pattern: ^/(?:_(profiler|wdt)|css|images|js)/
             security: false
 
+        public_ops:
+            pattern: ^/api/(metrics|health)$
+            security: false
+
+        webauthn:
+            pattern: ^/api/webauthn
+            security: false
+
         login:
             pattern: ^/api/auth/(login|refresh|mfa(/.*)?)$
             stateless: true
@@ -37,6 +45,9 @@ security:
             jwt: ~
 
     access_control:
+        - { path: ^/api/metrics, roles: PUBLIC_ACCESS }
+        - { path: ^/api/health, roles: PUBLIC_ACCESS }
+        - { path: ^/api/webauthn, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/refresh, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/mfa, roles: PUBLIC_ACCESS }
