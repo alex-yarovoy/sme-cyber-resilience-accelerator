@@ -1,10 +1,17 @@
 # Dashboards (Kibana)
 
-Version-locked Kibana **NDJSON** exports are **planned**: saved-object formats drift across Elastic Stack minor releases, so exports are shipped only when pinned to a documented Elastic version (see [ROADMAP.md](../../ROADMAP.md)).
+## Shipped
 
-**Current workflow:** after `docker compose up` (see [README](../README.md)), use **Discover** in Kibana:
+- **`filebeat-8.12.2.ndjson`** — index pattern `filebeat-*` plus saved search **Application logs (filebeat-*)**, pinned to Elastic **8.12.2** (see `docker-compose.yml`).
 
-1. Stack Management → Data Views → Create data view → index pattern `filebeat-*` (or `logs-*` depending on your ingest naming).
-2. Open **Discover** and search for `service.name` or `message` fields from your sample logs.
+## Import (Elastic 8.12.x)
 
-**Next:** curated dashboards and searches exported as NDJSON under this folder, aligned with the Elastic version in `docker-compose.yml`.
+1. Start the stack from `logging-alerts/` (`docker compose up -d`).
+2. Open Kibana → **Stack Management** → **Saved Objects** → **Import**.
+3. Select `filebeat-8.12.2.ndjson`.
+4. Resolve conflicts if you already created a data view with the same title.
+5. Open **Discover** or the imported saved search once Filebeat indices exist.
+
+## Planned
+
+- Full dashboard panels (error rate, service breakdown) exported as additional NDJSON objects for the same Elastic version pin.
