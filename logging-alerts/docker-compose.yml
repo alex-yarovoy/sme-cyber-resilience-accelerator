@@ -18,17 +18,26 @@ services:
       - ./configs/filebeat.yml:/usr/share/filebeat/filebeat.yml
       - ./configs/logs/:/var/log/app/
     depends_on: [elasticsearch]
+  nginx-health:
+    image: nginx:alpine
+    volumes:
+      - ./configs/health:/usr/share/nginx/html:ro
+      - ./configs/nginx-health.conf:/etc/nginx/nginx.conf:ro
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    depends_on: [nginx-health]
   prometheus:
     image: prom/prometheus:v2.53.0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./alert-rules/:/alert-rules/
     ports: ["9090:9090"]
+    depends_on: [blackbox-exporter, nginx-health]
   alertmanager:
     image: prom/alertmanager:v0.27.0
     volumes:
       - ./configs/alertmanager.yml:/etc/alertmanager/alertmanager.yml
     ports: ["9093:9093"]
     depends_on: [prometheus]
-
-

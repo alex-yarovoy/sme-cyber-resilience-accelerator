@@ -6,13 +6,23 @@ Vendor-agnostic centralized logging and alerting stack using Filebeat → Elasti
 
 - **Filebeat:** log shipping from files under `./configs/logs/`
 - **Elasticsearch:** log storage and indexing
-- **Kibana:** dashboards and search (**Discover** workflow below; curated NDJSON exports are on [ROADMAP.md](../ROADMAP.md))
+- **Kibana:** dashboards and search — minimal NDJSON under [`dashboards/`](dashboards/); expand per [ROADMAP.md](../ROADMAP.md)
 - **Prometheus:** metrics scraping
 - **Alertmanager:** alert routing and escalation
 
-## Security (P0 / lab only)
+## Security (lab vs production)
 
-Elasticsearch runs with **`xpack.security.enabled=false`** in `docker-compose.yml` so the stack starts quickly on a laptop. **Do not expose this compose file to the internet** or treat it as production. For any shared or hosted environment, enable Elasticsearch/Kibana security (TLS, users, roles) or keep the stack on an isolated lab network.
+Elasticsearch runs with **`xpack.security.enabled=false`** in `docker-compose.yml` so the stack starts quickly on a laptop. **Do not expose this compose file to the internet** or treat it as production.
+
+### Enabling Elasticsearch security (production-oriented steps)
+
+1. Set `xpack.security.enabled=true` and configure `ELASTIC_PASSWORD` (or bootstrap passwords) in `docker-compose.yml`.
+2. Enable TLS for HTTP and transport (Elastic documentation for your pinned version: **8.12.2**).
+3. Create Kibana system user and set `ELASTICSEARCH_USERNAME` / `ELASTICSEARCH_PASSWORD` on the Kibana service.
+4. Update Filebeat output to use HTTPS and credentials (`configs/filebeat.yml`).
+5. Restrict network access (firewall, private subnet, or VPN) so 9200/5601 are not public.
+
+These steps are **your** operational responsibility; the repo ships an offline-friendly lab profile by default.
 
 ## Quick start (happy path)
 
