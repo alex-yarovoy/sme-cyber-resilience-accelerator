@@ -9,7 +9,8 @@ import AppShell from './layouts/AppShell.vue'
 <style>
 html,
 body,
-#app {
+#app,
+.v-application {
   font-family: 'Source Sans 3 Variable', sans-serif;
 }
 </style>
