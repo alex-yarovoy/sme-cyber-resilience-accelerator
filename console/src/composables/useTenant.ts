@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { sampleTenants } from '../fixtures/sampleTenants'
 import type { SampleTenant } from '../fixtures/types'
 
-const selectedId = ref(sampleTenants[0].id)
+const selectedId = ref('cedar-harbor')
 
 export function useTenant() {
   const tenant = computed(
