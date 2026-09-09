@@ -45,6 +45,7 @@ Deliver **production-style baselines** for small and mid-sized teams and MSPs on
 ├── identity-mfa/
 ├── logging-alerts/
 ├── backup-dr/
+├── console/            # operator console (Vue)
 ├── terraform/          # cloud-neutral skeleton (validate only in CI)
 ├── kubernetes/         # Kustomize templates (identity-mfa first)
 └── docs/

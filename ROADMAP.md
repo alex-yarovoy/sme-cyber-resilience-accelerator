@@ -2,6 +2,12 @@
 
 This document lists **planned** work. The Accelerator **ships today** as Docker Compose-oriented deployments, scripts, and documentation so you can run and adapt it on common clouds. **Kubernetes packaging** and **Terraform modules** are **not** in the default tree yet; they are scheduled as explicit next releases.
 
+## Shipped (current tree)
+
+| Area | Status | Notes |
+|------|--------|--------|
+| **Operator console (Compose-independent UI)** | Shipped surfaces with sample tenants | Live telemetry, assessment engine, and MSP data plane are planned |
+
 ## Near term (documentation and portability)
 
 - Tighten cross-component conventions (naming, env var contracts, health check patterns).

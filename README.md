@@ -36,6 +36,8 @@ Today’s releases center on **Docker Compose**-based deployments, production-st
 
 **Terraform** and **Kubernetes** (Helm and/or Kustomize) packaging are **planned**; see **[ROADMAP.md](ROADMAP.md)** for the phased delivery plan.
 
+**Operator console** — Vue app in `console/` for reviewing assessment, KPI, identity, detection, recovery, and architecture surfaces against a **seeded sample tenant**. Start: `cd console && npm ci && npm run dev` (port 5174). Wiring these surfaces to live identity, logging, and backup telemetry is on the roadmap.
+
 ## Continuous integration
 
 GitHub Actions run **ShellCheck** on `backup-dr/scripts` and **`docker compose config`** for `identity-mfa` and `logging-alerts`. See [.github/workflows](.github/workflows/).
