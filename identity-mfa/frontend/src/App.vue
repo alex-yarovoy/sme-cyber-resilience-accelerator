@@ -18,13 +18,15 @@
     </section>
     <section v-else>
       <p>Logged in as {{ user?.email }}</p>
-      <p class="muted">Passkey / WebAuthn lab routes were removed in Phase 0; use password + TOTP MFA.</p>
+      <button type="button" @click="registerPasskey">Register passkey</button>
+      <p v-if="passkeyMessage" class="muted">{{ passkeyMessage }}</p>
     </section>
   </main>
   </template>
 
 <script setup lang="ts">
 import api from './http'
+import { registerPasskey as registerPasskeyFlow } from './webauthn'
 import { ref } from 'vue'
 const email = ref('admin@example.com')
 const password = ref('Admin#123456')
@@ -33,6 +35,17 @@ const error = ref('')
 const stage = ref<null | 'mfa' | 'done'>(null)
 const tempToken = ref('')
 const user = ref<any>(null)
+const passkeyMessage = ref('')
+
+async function registerPasskey() {
+  passkeyMessage.value = ''
+  try {
+    await registerPasskeyFlow()
+    passkeyMessage.value = 'Passkey registered.'
+  } catch (err: unknown) {
+    passkeyMessage.value = err instanceof Error ? err.message : 'Passkey registration failed.'
+  }
+}
 
 async function login() {
   error.value = ''

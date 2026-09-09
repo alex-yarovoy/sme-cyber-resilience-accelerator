@@ -6,6 +6,7 @@ services:
     volumes:
       - ./backend/public:/var/www/html/public
       - ./backend:/var/www/html
+      - ./frontend/dist:/var/www/frontend/dist:ro
       - ./configs/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - php
