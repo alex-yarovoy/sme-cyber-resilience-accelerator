@@ -73,7 +73,18 @@ Third-party attestations (SOC 2, HIPAA, GDPR program) are **your** organizationa
 ## API overview
 
 - `POST /api/auth/login` — JSON `email`, `password`  
-- MFA, refresh, WebAuthn — see `backend/src/Controller/` and `backend/config/routes.yaml`  
+- `GET /api/health`, `GET /api/metrics` — probes and Prometheus text exposition  
+- MFA, refresh, logout — see `backend/src/Controller/`  
+- WebAuthn — client in `frontend/src/webauthn.ts`; server returns **503** until credential storage is enabled for your profile  
+
+## Frontend production build
+
+```bash
+cd frontend
+npm ci
+npm run build   # output: frontend/dist/
+docker compose up -d   # nginx mounts dist/
+```
 
 ## Stack
 
