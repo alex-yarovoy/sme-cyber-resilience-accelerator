@@ -10,7 +10,14 @@ services:
         bind:
             string $jwtSecret: '%jwt_secret%'
             string $jwtAlgorithm: '%jwt_algorithm%'
-            Symfony\Component\RateLimiter\Storage\StorageInterface $storage: '@limiter.storage.login'
+
+    App\Service\WebAuthnAttestationVerifier: '@App\Service\ChallengeBindingWebAuthnVerifier'
+
+    App\Service\RateLimiterService:
+        arguments:
+            $loginLimiter: '@limiter.login'
+            $mfaLimiter: '@limiter.mfa'
+            $apiLimiter: '@limiter.api'
 
     App\:
         resource: '../src/'
@@ -18,6 +25,7 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
+            - '../src/Service/WebAuthnAttestationVerifier.php'
 
     App\Controller\:
         resource: '../src/Controller/'

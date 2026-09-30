@@ -13,4 +13,17 @@ framework:
             limit: 100
             rate: { interval: '1 minute', amount: 100 }
 
+when@test:
+    framework:
+        rate_limiter:
+            login:
+                policy: 'token_bucket'
+                limit: 100
+                rate: { interval: '1 minute', amount: 100 }
+            mfa:
+                policy: 'token_bucket'
+                limit: 100
+                rate: { interval: '1 minute', amount: 100 }
+
+
 
