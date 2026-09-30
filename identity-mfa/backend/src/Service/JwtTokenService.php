@@ -5,7 +5,6 @@ namespace App\Service;
 use App\Entity\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 class JwtTokenService
@@ -76,6 +75,16 @@ class JwtTokenService
         return JWT::encode($payload, $this->jwtSecret, $this->jwtAlgorithm);
     }
 
+    public function blacklistAccessToken(string $token): void
+    {
+        $payload = $this->readUnsignedPayload($token);
+        if ($payload === null) {
+            return;
+        }
+
+        $this->tokenDenylist->deny($this->extractTokenId($payload), $this->remainingTtl($payload));
+    }
+
     public function blacklistToken(string $token): void
     {
         $payload = $this->decodeToken($token);
@@ -94,6 +103,30 @@ class JwtTokenService
         }
 
         return $this->tokenDenylist->isDenied($this->extractTokenId($payload));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function readUnsignedPayload(string $token): ?array
+    {
+        $parts = explode('.', $token);
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $padded = strtr($parts[1], '-_', '+/');
+        $remainder = strlen($padded) % 4;
+        if ($remainder !== 0) {
+            $padded .= str_repeat('=', 4 - $remainder);
+        }
+        $json = base64_decode($padded, true);
+        if ($json === false) {
+            return null;
+        }
+        $payload = json_decode($json, true);
+
+        return is_array($payload) ? $payload : null;
     }
 
     private function extractTokenId(array $payload): string

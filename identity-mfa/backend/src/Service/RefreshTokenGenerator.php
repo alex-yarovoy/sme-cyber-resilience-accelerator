@@ -2,11 +2,11 @@
 
 namespace App\Service;
 
+use App\Entity\RefreshToken;
 use App\Entity\User;
 use DateInterval;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Gesdinet\JWTRefreshTokenBundle\Entity\RefreshToken;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 class RefreshTokenGenerator

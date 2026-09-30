@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Service\AuditLogger;
 use App\Service\AuthMetricsService;
@@ -17,12 +18,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Gesdinet\JWTRefreshTokenBundle\Entity\RefreshToken;
 
 #[Route('/api/auth', name: 'api_auth_')]
 class AuthController extends AbstractController
@@ -260,15 +259,21 @@ class AuthController extends AbstractController
         $authorization = $request->headers->get('Authorization', '');
 
         if (str_starts_with($authorization, 'Bearer ')) {
-            $token = substr($authorization, 7);
-            try {
-                $this->jwtTokenService->blacklistToken($token);
-            } catch (\InvalidArgumentException) {
-                // Ignore malformed tokens on logout.
+            $this->jwtTokenService->blacklistAccessToken(substr($authorization, 7));
+        }
+
+        $data = json_decode($request->getContent() ?: '{}', true);
+        if (is_array($data) && isset($data['refresh_token']) && is_string($data['refresh_token']) && $data['refresh_token'] !== '') {
+            $stored = $this->entityManager->getRepository(RefreshToken::class)->findOneBy([
+                'refreshToken' => $data['refresh_token'],
+            ]);
+            if ($stored) {
+                $this->entityManager->remove($stored);
+                $this->entityManager->flush();
             }
         }
 
-        if ($user) {
+        if ($user instanceof User) {
             $this->auditLogger->log('LOGOUT', $user, $request->getClientIp(), $request->headers->get('User-Agent'));
         }
 

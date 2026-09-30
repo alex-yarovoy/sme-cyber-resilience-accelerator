@@ -10,6 +10,9 @@ class TokenDenylistService
 
     private ?\Redis $redis;
 
+    /** @var array<string, int> */
+    private static array $memory = [];
+
     public function __construct(
         #[Autowire('%env(REDIS_URL)%')] string $redisUrl,
     ) {
@@ -18,19 +21,25 @@ class TokenDenylistService
 
     public function deny(string $tokenId, int $ttlSeconds): void
     {
-        if ($this->redis === null || $ttlSeconds <= 0) {
+        if ($ttlSeconds <= 0) {
             return;
         }
 
-        $this->redis->setex(self::KEY_PREFIX.$tokenId, $ttlSeconds, '1');
+        if ($this->redis !== null) {
+            $this->redis->setex(self::KEY_PREFIX.$tokenId, $ttlSeconds, '1');
+        }
+
+        self::$memory[$tokenId] = time() + $ttlSeconds;
     }
 
     public function isDenied(string $tokenId): bool
     {
-        if ($this->redis === null) {
-            return false;
+        if ($this->redis !== null && $this->redis->exists(self::KEY_PREFIX.$tokenId)) {
+            return true;
         }
 
-        return (bool) $this->redis->exists(self::KEY_PREFIX.$tokenId);
+        $expiresAt = self::$memory[$tokenId] ?? 0;
+
+        return $expiresAt > time();
     }
 }

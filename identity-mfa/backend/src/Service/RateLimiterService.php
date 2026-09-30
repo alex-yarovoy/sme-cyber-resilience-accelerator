@@ -3,98 +3,37 @@
 namespace App\Service;
 
 use Symfony\Component\RateLimiter\RateLimiterFactory;
-use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
 class RateLimiterService
 {
-    private array $rateLimiters = [];
-
     public function __construct(
-        private StorageInterface $storage
-    ) {}
+        private RateLimiterFactory $loginLimiter,
+        private RateLimiterFactory $mfaLimiter,
+        private RateLimiterFactory $apiLimiter,
+    ) {
+    }
 
     public function isAllowed(string $type, string $key): bool
     {
-        $rateLimiter = $this->getRateLimiter($type);
-        $limit = $rateLimiter->create($key)->consume();
-
-        return $limit->isAccepted();
+        return $this->factoryFor($type)->create($key)->consume()->isAccepted();
     }
 
     public function getRemainingAttempts(string $type, string $key): int
     {
-        $rateLimiter = $this->getRateLimiter($type);
-        $limit = $rateLimiter->create($key)->consume();
-
-        return $limit->getRemainingTokens();
+        return $this->factoryFor($type)->create($key)->consume()->getRemainingTokens();
     }
 
     public function getResetTime(string $type, string $key): ?\DateTimeImmutable
     {
-        $rateLimiter = $this->getRateLimiter($type);
-        $limit = $rateLimiter->create($key)->consume();
-
-        return $limit->getRetryAfter();
+        return $this->factoryFor($type)->create($key)->consume()->getRetryAfter();
     }
 
-    private function getRateLimiter(string $type): RateLimiterFactory
-    {
-        if (!isset($this->rateLimiters[$type])) {
-            $this->rateLimiters[$type] = $this->createRateLimiter($type);
-        }
-
-        return $this->rateLimiters[$type];
-    }
-
-    private function createRateLimiter(string $type): RateLimiterFactory
-    {
-        $config = $this->getRateLimitConfig($type);
-        
-        return new RateLimiterFactory(
-            $config,
-            $this->storage
-        );
-    }
-
-    private function getRateLimitConfig(string $type): array
+    private function factoryFor(string $type): RateLimiterFactory
     {
         return match ($type) {
-            'login' => [
-                'id' => 'login',
-                'policy' => 'token_bucket',
-                'limit' => 5,
-                'interval' => '1 minute',
-            ],
-            'mfa' => [
-                'id' => 'mfa',
-                'policy' => 'token_bucket',
-                'limit' => 3,
-                'interval' => '1 minute',
-            ],
-            'password_reset' => [
-                'id' => 'password_reset',
-                'policy' => 'token_bucket',
-                'limit' => 3,
-                'interval' => '1 hour',
-            ],
-            'api' => [
-                'id' => 'api',
-                'policy' => 'token_bucket',
-                'limit' => 100,
-                'interval' => '1 minute',
-            ],
-            'registration' => [
-                'id' => 'registration',
-                'policy' => 'token_bucket',
-                'limit' => 3,
-                'interval' => '1 hour',
-            ],
-            default => [
-                'id' => 'default',
-                'policy' => 'token_bucket',
-                'limit' => 10,
-                'interval' => '1 minute',
-            ],
+            'login' => $this->loginLimiter,
+            'mfa' => $this->mfaLimiter,
+            default => $this->apiLimiter,
         };
     }
 }
