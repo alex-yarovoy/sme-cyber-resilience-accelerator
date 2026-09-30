@@ -69,7 +69,7 @@ Deliver **production-style baselines** for small and mid-sized teams and MSPs on
 | HTTP | Nginx → PHP-FPM | [`docker-compose.yml`](../identity-mfa/docker-compose.yml), [`configs/nginx.conf`](../identity-mfa/configs/nginx.conf); API under `/api/`. |
 | Backend | Symfony 6.4, PHP ≥ 8.1 | [`backend/composer.json`](../identity-mfa/backend/composer.json). |
 | Auth | Lexik JWT, Gesdinet refresh bundle, scheb/2fa TOTP | User entity implements `TwoFactorInterface`. |
-| Passkeys | Client + API contract | [`frontend/src/webauthn.ts`](../identity-mfa/frontend/src/webauthn.ts) (browser ceremony); [`WebAuthnController`](../identity-mfa/backend/src/Controller/WebAuthnController.php) returns **503** until server credential storage is configured for your deployment profile. |
+| Passkeys | Client + API contract | [`frontend/src/webauthn.ts`](../identity-mfa/frontend/src/webauthn.ts); [`WebAuthnController`](../identity-mfa/backend/src/Controller/WebAuthnController.php) issues W3C-shaped options and stores challenges. [`ChallengeBindingWebAuthnVerifier`](../identity-mfa/backend/src/Service/ChallengeBindingWebAuthnVerifier.php) binds `clientDataJSON.challenge`. Full CBOR/attestation crypto is on [ROADMAP.md](../ROADMAP.md). |
 | Data | PostgreSQL 14, Redis 7 | UUID users; migrations under `backend/migrations/`. |
 | Frontend | Vue 3, Vite, Pinia, Axios, Vuetify | Admin shell in [`frontend/src/App.vue`](../identity-mfa/frontend/src/App.vue). |
 
@@ -77,13 +77,14 @@ Deliver **production-style baselines** for small and mid-sized teams and MSPs on
 
 - `POST /api/auth/login` — password check, rate limit, optional MFA step-up, JWT + refresh (see [`AuthController`](../identity-mfa/backend/src/Controller/AuthController.php)).  
 - `POST /api/auth/mfa/verify` — TOTP verification after short-lived MFA token.  
-- `POST /api/auth/refresh` — **also** declared in [`routes.yaml`](../identity-mfa/backend/config/routes.yaml) for Gesdinet at same path — **potential route clash** with `AuthController::refresh` (see section 7).  
-- `POST /api/auth/logout`, `GET /api/auth/me`.  
-- WebAuthn routes under `/api/webauthn/*` (wrappers around bundle controllers).
+- `POST /api/auth/refresh` — rotates Gesdinet `refresh_tokens` rows (`App\Entity\RefreshToken`).  
+- `POST /api/auth/logout` — denylists Lexik access-token `jti` (Redis + in-process fallback); optional JSON `refresh_token` deletes the refresh row.  
+- `GET /api/auth/me` — JWT `api` firewall; denylisted `jti` is rejected.  
+- WebAuthn: `POST /api/webauthn/options/register`, `.../options/login`, `.../register`, `.../login`.
 
 **Services of note:**
 
-- [`JwtTokenService`](../identity-mfa/backend/src/Service/JwtTokenService.php) — JWT payloads; **Redis-backed denylist** via [`TokenDenylistService`](../identity-mfa/backend/src/Service/TokenDenylistService.php) (no-op when Redis extension or server unavailable).  
+- [`JwtTokenService`](../identity-mfa/backend/src/Service/JwtTokenService.php) — HS256 MFA tokens; Lexik **access-token denylist** via `jti` + [`TokenDenylistService`](../identity-mfa/backend/src/Service/TokenDenylistService.php) + [`JwtDenylistSubscriber`](../identity-mfa/backend/src/EventSubscriber/JwtDenylistSubscriber.php).  
 - [`RiskScoringService`](../identity-mfa/backend/src/Service/RiskScoringService.php) — **context-based** scoring from `$context` flags; optional IP reputation or device signals are extension points for a later iteration.  
 - [`AuditLogger`](../identity-mfa/backend/src/Service/AuditLogger.php), [`RateLimiterService`](../identity-mfa/backend/src/Service/RateLimiterService.php), [`RefreshTokenGenerator`](../identity-mfa/backend/src/Service/RefreshTokenGenerator.php).
 
@@ -138,7 +139,7 @@ Vite dev server proxies `/api` to port **8880** (see [`vite.config.ts`](../ident
 
 ### 3.5 Tests
 
-`backend/tests/` contains PHPUnit **scaffold** (metrics unit test, health/metrics HTTP smoke, auth controller tests). CI runs `vendor/bin/phpunit` with Postgres + Redis services. Full green auth integration may require follow-up (schema bootstrap for `refresh_tokens`, local PHP extensions). See §7 and [ROADMAP.md](../ROADMAP.md).
+`backend/tests/` covers AuthMetrics, WebAuthn challenge-binding verifier, public `/api/health` and `/api/metrics`, plus AuthController login / refresh rotation / logout denylist / WebAuthn options. CI runs `vendor/bin/phpunit` with Postgres 14 and Redis 7 (`dbname_suffix` → `identity_mfa_test`).
 
 ---
 
@@ -246,9 +247,9 @@ When extending any component:
 |----|------|-------------|---------------|
 | D1 | identity-mfa | ~~`routes.yaml` duplicate refresh route~~ | **Done:** only `AuthController::refresh` serves `POST /api/auth/refresh`; Gesdinet YAML route removed. Refresh uses persisted Gesdinet `RefreshToken` rows from `RefreshTokenGenerator`. |
 | D2 | identity-mfa | ~~`PUBLIC_ACCESS` for refresh~~ | **Done:** `access_control` includes `^/api/auth/refresh`; login firewall pattern narrowed to `^/api/auth/(login|refresh|mfa(/.*)?)$` so `/api/auth/me` and `/api/auth/logout` use the JWT `api` firewall. |
-| D3 | identity-mfa | JWT blacklist and refresh rotation not backed by Redis despite comments. | **Done:** Redis denylist via `TokenDenylistService` (graceful no-op without Redis). |
+| D3 | identity-mfa | JWT blacklist and refresh rotation not backed by Redis despite comments. | **Done:** Lexik `jti` denylist via `JwtDenylistSubscriber`; logout also deletes optional `refresh_token` row. |
 | D4 | identity-mfa | `RiskScoringService` uses only static context flags. | Integrate optional IP reputation or device cookie with safe defaults. |
-| D5 | identity-mfa | WebAuthn frontend incomplete. | **Partial:** client `webauthn.ts` + API routes; server credential store **deployment profile TBD**. |
+| D5 | identity-mfa | WebAuthn frontend incomplete. | **Partial:** options + challenge store + credential metadata persist; CBOR/attestation crypto on ROADMAP. |
 | D6 | logging-alerts | Prometheus scrapes `nginx:80` but no nginx in compose. | **Done:** `nginx-health` + blackbox-exporter. |
 | D7 | logging-alerts | Alert metrics not emitted. | **Done:** identity `/api/metrics`; scrape via `host.docker.internal:8880` when identity runs on host. |
 | D8 | backup-dr | GNU `date` in drill report. | **Done:** portable `epoch_utc()` in `dr_drill.sh`. |
@@ -266,13 +267,13 @@ When extending any component:
 
 **P1 — credibility and maintainability**
 
-4. PHPUnit scaffold for AuthController paths — **CI integration may need follow-up**.  
+4. ~~PHPUnit for AuthController paths.~~ **Done** (login, refresh, logout, WebAuthn options).  
 5. ~~Wire Prometheus metrics from identity (D7).~~ **Done.**  
 6. ~~Fix `dr_drill.sh` portability (D8).~~ **Done.**
 
 **P2 — product completeness**
 
-7. WebAuthn E2E (D5) — client shipped; server store TBD.  
+7. WebAuthn attestation/assertion cryptography (D5 follow-on).  
 8. ~~Vite proxy and production build for Vue + Nginx.~~ **Done** (build + compose volume).  
 9. ~~MySQL backup/restore scripts.~~ **Done.**  
 10. Reconcile `ARCHITECTURE.md` with actual classes or split into target vs current doc.
@@ -295,4 +296,4 @@ Do not assume features exist unless the handbook or code shows them. Prefer smal
 
 Primary maintainer: **Alexander Yarovoy**.
 
-**Document version:** 1.1 (terraform/kubernetes skeletons, metrics, MySQL scripts, handbook debt table updated.)
+**Document version:** 1.2 (Lexik jti denylist, WebAuthn ceremony contract, PHPUnit auth suite).
