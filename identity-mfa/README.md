@@ -73,9 +73,16 @@ Third-party attestations (SOC 2, HIPAA, GDPR program) are **your** organizationa
 ## API overview
 
 - `POST /api/auth/login` — JSON `email`, `password`  
+- `POST /api/auth/refresh` — JSON `refresh_token` (single-use rotation)  
+- `POST /api/auth/logout` — Bearer access token; optional JSON `refresh_token`  
+- `GET /api/auth/me` — current user (JWT); denylisted tokens are rejected  
 - `GET /api/health`, `GET /api/metrics` — probes and Prometheus text exposition  
-- MFA, refresh, logout — see `backend/src/Controller/`  
-- WebAuthn — client in `frontend/src/webauthn.ts`; server returns **503** until credential storage is enabled for your profile  
+- WebAuthn ceremony:
+  - `POST /api/webauthn/options/register` and `.../options/login` — JSON `email`; response envelope `{ "publicKey": { ... } }`
+  - `POST /api/webauthn/register` — persist credential metadata after challenge binding
+  - `POST /api/webauthn/login` — challenge binding; assertion cryptography is a follow-on release  
+
+Client: [`frontend/src/webauthn.ts`](frontend/src/webauthn.ts).
 
 ## Frontend production build
 
