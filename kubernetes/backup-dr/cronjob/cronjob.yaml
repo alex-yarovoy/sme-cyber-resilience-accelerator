@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: postgres:14-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache bash gzip coreutils
+                  /scripts/backup_postgres.sh
+              envFrom:
+                - secretRef:
+                    name: backup-dr-db
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: scripts
+              configMap:
+                name: backup-dr-scripts
+            - name: backups
+              persistentVolumeClaim:
+                claimName: backup-dr-pvc
