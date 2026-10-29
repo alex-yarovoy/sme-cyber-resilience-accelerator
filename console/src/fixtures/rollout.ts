@@ -20,6 +20,6 @@ export const rolloutPhases: RolloutPhase[] = [
     label: 'Drill and measure',
     dayStart: 60,
     dayEnd: 90,
-    focus: 'Run the restore drill and measure MTTD, MTTR, RTO, and RPO',
+    focus: 'Test alert delivery and staffed acknowledgement; verify restore time, data loss, and remediation',
   },
 ]

@@ -33,7 +33,7 @@ const groups = [
   {
     title: 'MSP',
     items: [
-      { title: 'Clients', to: { name: 'clients' } },
+      { title: 'Sample tenants', to: { name: 'clients' } },
     ],
   },
 ]
@@ -77,6 +77,7 @@ const groups = [
 
     <v-main>
       <v-container class="py-6" fluid>
+        <div class="text-body-2 mb-5 pa-3 demo-notice">Demonstration only · fictional organizations and synthetic values · no customer pilot results. Objectives are prospective and require pilot-specific validation.</div>
         <router-view />
       </v-container>
     </v-main>
@@ -84,6 +85,11 @@ const groups = [
 </template>
 
 <style scoped>
+.demo-notice {
+  border-left: 3px solid #0d7377;
+  background: #f3f7f8;
+  color: #1c3447;
+}
 .tenant-select {
   max-width: 240px;
 }

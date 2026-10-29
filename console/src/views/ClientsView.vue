@@ -26,12 +26,12 @@ const headers = [
   { title: 'Sector', key: 'sector' },
   { title: 'MFA', key: 'mfa' },
   { title: 'Last drill', key: 'lastDrill' },
-  { title: 'CSF score', key: 'csfScore' },
+  { title: 'Illustrative score', key: 'csfScore' },
 ]
 </script>
 
 <template>
-  <h1 class="text-h4 mb-6">Clients</h1>
+  <h1 class="text-h4 mb-6">Sample tenants</h1>
 
   <v-data-table
     :headers="headers"

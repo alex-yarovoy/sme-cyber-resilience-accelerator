@@ -13,8 +13,9 @@ mermaid.initialize({
   startOnLoad: false,
   securityLevel: 'strict',
   theme: 'base',
+  flowchart: { htmlLabels: false },
   themeVariables: {
-    fontFamily: '"Source Sans 3 Variable", sans-serif',
+    fontFamily: 'Arial, sans-serif',
     primaryColor: teal,
     primaryTextColor: text,
     primaryBorderColor: navy,
@@ -37,6 +38,8 @@ const host = ref<HTMLElement | null>(null)
 let generation = 0
 
 async function draw() {
+  if (!host.value) return
+  await document.fonts.ready
   if (!host.value) return
   const id = nextMermaidId()
   const token = ++generation
@@ -62,5 +65,11 @@ onUnmounted(() => {
 .diagram :deep(svg) {
   max-width: 100%;
   height: auto;
+}
+.diagram :deep(.nodeLabel) {
+  letter-spacing: 0;
+}
+.diagram :deep(foreignObject) {
+  overflow: visible;
 }
 </style>

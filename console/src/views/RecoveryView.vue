@@ -11,7 +11,7 @@ const drillVsRto = computed(
   () => `${tenant.value.lastDrillHours} h vs ${tenant.value.rtoHours} h`,
 )
 
-const kmsOnPolicy = computed(() => tenant.value.kmsSecretsPercent >= 100)
+const secretsOnPolicy = computed(() => tenant.value.managedSecretsPercent >= 100)
 </script>
 
 <template>
@@ -22,25 +22,26 @@ const kmsOnPolicy = computed(() => tenant.value.kmsSecretsPercent >= 100)
       <KpiStat label="Last drill" :value="`${drillResult}, ${tenant.lastDrillAt}`" />
     </v-col>
     <v-col cols="12" sm="6" md="4">
-      <KpiStat label="Duration vs RTO" :value="drillVsRto" />
+      <KpiStat label="Restore duration vs objective" :value="drillVsRto" />
     </v-col>
     <v-col cols="12" sm="6" md="4">
-      <KpiStat label="RPO" :value="`${tenant.rpoHours} h`" />
+      <KpiStat label="Backup age vs data loss objective" :value="`${tenant.lastBackupAgeHours} h vs ${tenant.rpoHours} h`" />
     </v-col>
   </v-row>
 
+  <p class="text-body-2 mb-4">Synthetic drill only. Actual pilots must verify workload integrity, usable service, elapsed restore time, and recoverable data age.</p>
   <v-card variant="outlined">
     <v-card-title class="d-flex align-center">
-      <span>Encryption / KMS policy</span>
+      <span>Managed application secrets</span>
       <v-chip
         class="ml-2"
-        :color="kmsOnPolicy ? 'secondary' : 'primary'"
+        :color="secretsOnPolicy ? 'secondary' : 'primary'"
         size="small"
         variant="flat"
       >
-        {{ kmsOnPolicy ? 'On policy' : 'Off policy' }}
+        {{ secretsOnPolicy ? 'On policy' : 'Off policy' }}
       </v-chip>
     </v-card-title>
-    <v-card-text>{{ tenant.kmsSecretsPercent }}% of secrets under KMS policy</v-card-text>
+    <v-card-text>{{ tenant.managedSecretsPercent }}% of identified runtime secrets in a managed secret store. Encryption keys are inventoried and protected separately.</v-card-text>
   </v-card>
 </template>

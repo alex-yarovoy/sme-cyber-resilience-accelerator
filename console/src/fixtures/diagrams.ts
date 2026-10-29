@@ -23,8 +23,8 @@ export const diagrams: ArchitectureDiagram[] = [
   IdP --> Device[Device check]
   Device --> Policy[Session policy]
   Policy --> App[Application]
-  Policy --> TF[Terraform]
-  Policy --> K8s[Kubernetes]`,
+  Policy --> TF["Terraform (planned)"]
+  Policy --> K8s["Kubernetes (planned)"]`,
   },
   {
     id: 'observability-backup',

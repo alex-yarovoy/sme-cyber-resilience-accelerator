@@ -3,18 +3,21 @@ import { computed } from 'vue'
 import KpiStat from '../components/KpiStat.vue'
 import { useTenant } from '../composables/useTenant'
 import { controls } from '../fixtures/controls'
+import { remediationPercent } from '../fixtures/sampleTenants'
 
 const { tenant } = useTenant()
 
-function formatMeasure(value: number, unit: string): string {
+function formatMeasure(value: number | null, unit: string): string {
+  if (value === null) return 'N/A'
   if (unit === '%') return `${value}%`
   if (unit === 'h') return `${value} h`
+  if (unit === 'min') return `${value} min`
   return String(value)
 }
 
 const misconfigPath = computed(() => {
   const current = tenant.value
-  return `${current.misconfigsBaseline} → ${current.misconfigsCurrent} → ${current.misconfigsTarget}`
+  return `${current.misconfigsBaseline} baseline / ${current.misconfigsCurrent} open`
 })
 
 const rows = computed(() =>
@@ -24,7 +27,7 @@ const rows = computed(() =>
       id: row.id,
       control: row.control,
       current: formatMeasure(row.current, row.unit),
-      target: formatMeasure(row.target, row.unit),
+      target: `${row.direction === 'at-most' ? '≤' : '≥'} ${formatMeasure(row.target, row.unit)}`,
       owner: tenant.value.msp,
     })),
 )
@@ -42,12 +45,14 @@ const headers = [
 
   <v-row class="mb-6">
     <v-col cols="12" md="6">
-      <KpiStat label="Misconfigurations" :value="misconfigPath" />
+      <KpiStat label="Sample high and critical findings" :value="misconfigPath" />
     </v-col>
     <v-col cols="12" md="6">
       <KpiStat label="Assets" :value="String(tenant.assetCount)" />
     </v-col>
   </v-row>
+
+  <p class="text-body-2 mb-4">Synthetic baseline findings resolved: {{ remediationPercent(tenant) === null ? 'N/A' : `${remediationPercent(tenant)}%` }} · objective ≥60%. Recheck the same assets and rules; new findings and exceptions are tracked separately. A zero baseline has no percentage reduction.</p>
 
   <v-data-table
     :headers="headers"

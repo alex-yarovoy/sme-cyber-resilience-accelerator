@@ -23,7 +23,7 @@ const bundles = computed(() => {
       id: 'identity',
       label: 'Identity',
       detail: `Protect ${current.csf.protect} · MFA ${current.mfaPercent}%`,
-      onTarget: current.mfaPercent >= 95,
+      onTarget: current.mfaPercent >= 95 && current.privilegedMfaPercent >= 100,
     },
     {
       id: 'detection',
@@ -44,9 +44,10 @@ const bundles = computed(() => {
 <template>
   <h1 class="text-h4 mb-6">Overview</h1>
 
+  <p class="text-body-2 mb-4">Program-specific demonstration scores, not a NIST certification or assessment. All figures below are synthetic.</p>
   <v-row class="mb-6">
     <v-col cols="12" sm="6" md="3">
-      <KpiStat label="CSF score" :value="String(csfScore)" />
+      <KpiStat label="Illustrative CSF score" :value="String(csfScore)" />
     </v-col>
     <v-col cols="12" sm="6" md="3">
       <KpiStat label="MFA" :value="`${tenant.mfaPercent}%`" />
@@ -62,7 +63,7 @@ const bundles = computed(() => {
   <v-row>
     <v-col cols="12" md="7">
       <v-card variant="outlined">
-        <v-card-title>CSF 2.0 functions</v-card-title>
+        <v-card-title>Illustrative CSF 2.0 function scores</v-card-title>
         <v-card-text>
           <CsfRadar :scores="tenant.csf" />
         </v-card-text>

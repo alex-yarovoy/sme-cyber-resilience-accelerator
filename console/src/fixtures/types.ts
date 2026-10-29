@@ -11,17 +11,18 @@ export interface SampleTenant {
   mfaPercent: number
   passkeyPercent: number
   misconfigsCurrent: number
-  misconfigsTarget: number
   misconfigsBaseline: number
   logCoveragePercent: number
-  mttdHours: number
-  mttrHours: number
+  privilegedMfaPercent: number
+  alertDeliveryMinutes: number
+  acknowledgementMinutes: number
+  lastBackupAgeHours: number
   rtoHours: number
   rpoHours: number
   lastDrillAt: string
   lastDrillHours: number
   lastDrillPassed: boolean
-  kmsSecretsPercent: number
+  managedSecretsPercent: number
   assetCount: number
 }
 
@@ -31,9 +32,10 @@ export interface ControlRow {
   policyTheme: string
   control: string
   kpiLabel: string
-  current: number
+  current: number | null
   target: number
   unit: string
+  direction: 'at-least' | 'at-most'
   csf: CsfFunction
 }
 

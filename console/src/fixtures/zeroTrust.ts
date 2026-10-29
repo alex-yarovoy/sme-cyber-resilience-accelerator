@@ -6,7 +6,7 @@ export const zeroTrustPillars: ZeroTrustPillar[] = [
     title: 'Identity',
     summary: 'Staff sign-in is the control plane for SaaS and admin paths.',
     controls: [
-      'MFA on every staff identity-provider account',
+      'MFA for all privileged and at least 95% of other in-scope interactive accounts',
       'Passkeys for owners, finance, and privileged operators',
       'No shared admin mailboxes',
       'Identity provider as the source of truth for joiner, mover, and leaver',
@@ -39,7 +39,7 @@ export const zeroTrustPillars: ZeroTrustPillar[] = [
     title: 'Data',
     summary: 'Secrets, backups, and customer records stay in named stores with review.',
     controls: [
-      'KMS-backed secrets; no long-lived keys in tickets or chat',
+      'Managed runtime secret store; encryption keys inventoried and protected separately',
       'Encrypted, versioned backups with a tested restore',
       'Guest and customer PII limited to systems that need it',
       'Quarterly access review for finance and booking or storefront roles',

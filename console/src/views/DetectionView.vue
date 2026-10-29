@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import KpiStat from '../components/KpiStat.vue'
 import { useTenant } from '../composables/useTenant'
-import { detection, incidentRateTargetLabel } from '../fixtures/detection'
+import { detection, alertExerciseTargets } from '../fixtures/detection'
 import type { AlertRouteStatus } from '../fixtures/types'
 
 const { tenant } = useTenant()
@@ -35,11 +35,12 @@ const statusLabel: Record<AlertRouteStatus, string> = {
       <KpiStat label="Failed logins" :value="String(snapshot.failedLoginCount)" />
     </v-col>
     <v-col cols="12" sm="6" md="4">
-      <KpiStat label="Program target" :value="incidentRateTargetLabel" />
+      <KpiStat label="Staffed alert exercise objectives" :value="alertExerciseTargets" />
     </v-col>
   </v-row>
 
-  <div class="text-subtitle-1 mb-3">Alert routes</div>
+  <p class="text-body-2 mb-4">Synthetic example: delivered in {{ tenant.alertDeliveryMinutes }} min; acknowledged in {{ tenant.acknowledgementMinutes }} min during an agreed staffed exercise. This does not measure real incident detection or promise 24/7 response.</p>
+  <div class="text-subtitle-1 mb-3">Sample alert routes</div>
   <v-chip
     v-for="route in snapshot.alertRoutes"
     :key="route.channel"

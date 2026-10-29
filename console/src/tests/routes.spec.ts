@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sampleTenants } from '../fixtures/sampleTenants'
+import { remediationPercent, sampleTenants } from '../fixtures/sampleTenants'
 import { router } from '../router'
 
 const namedRoutes = [
@@ -25,6 +25,11 @@ describe('named routes', () => {
 })
 
 describe('sampleTenants', () => {
+  it('does not report a percentage for absent or inconsistent baseline findings', () => {
+    const tenant = sampleTenants[0]
+    expect(remediationPercent({ ...tenant, misconfigsBaseline: 0, misconfigsCurrent: 0 })).toBeNull()
+    expect(remediationPercent({ ...tenant, misconfigsBaseline: 5, misconfigsCurrent: 6 })).toBeNull()
+  })
   it('ids are cedar-harbor, brightcart, oak-ember, northline', () => {
     expect(sampleTenants.map((tenant) => tenant.id)).toEqual([
       'cedar-harbor',
@@ -34,10 +39,10 @@ describe('sampleTenants', () => {
     ])
   })
 
-  it('cedar-harbor MFA and misconfig baseline', () => {
+  it('cedar-harbor synthetic MFA and finding baseline', () => {
     const cedarHarbor = sampleTenants.find((tenant) => tenant.id === 'cedar-harbor')
     expect(cedarHarbor).toBeDefined()
     expect(cedarHarbor?.mfaPercent).toBe(96)
-    expect(cedarHarbor?.misconfigsBaseline).toBe(25)
+    expect(cedarHarbor?.misconfigsBaseline).toBe(20)
   })
 })

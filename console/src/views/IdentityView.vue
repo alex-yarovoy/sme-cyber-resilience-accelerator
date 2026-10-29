@@ -11,6 +11,7 @@ const snapshot = computed(
 )
 
 const mfaOnTarget = computed(() => tenant.value.mfaPercent >= 95)
+const privilegedOnTarget = computed(() => tenant.value.privilegedMfaPercent >= 100)
 </script>
 
 <template>
@@ -18,7 +19,7 @@ const mfaOnTarget = computed(() => tenant.value.mfaPercent >= 95)
 
   <v-card variant="outlined" class="mb-6">
     <v-card-title class="d-flex align-center">
-      <span>MFA vs target 95%</span>
+      <span>Staff MFA vs objective 95%</span>
       <v-chip
         class="ml-2"
         :color="mfaOnTarget ? 'secondary' : 'primary'"
@@ -38,10 +39,14 @@ const mfaOnTarget = computed(() => tenant.value.mfaPercent >= 95)
     </v-card-text>
   </v-card>
 
+  <v-card variant="outlined" class="mb-6">
+    <v-card-title>Privileged interactive accounts</v-card-title>
+    <v-card-text>{{ tenant.privilegedMfaPercent }}% with MFA vs objective 100% · {{ privilegedOnTarget ? 'On target' : 'Off target' }}. Emergency access exceptions require explicit review.</v-card-text>
+  </v-card>
   <v-row>
     <v-col cols="12" md="8">
       <v-card variant="outlined">
-        <v-card-title>TOTP vs passkey</v-card-title>
+        <v-card-title>Staff MFA and passkey adoption</v-card-title>
         <v-card-text>
           <div class="text-body-2 mb-2">MFA {{ tenant.mfaPercent }}%</div>
           <v-progress-linear class="mb-4" :model-value="tenant.mfaPercent" color="primary" height="12" />

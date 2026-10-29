@@ -1,7 +1,7 @@
 import { sampleTenants } from './sampleTenants'
 import type { AlertRoute, DetectionSnapshot } from './types'
 
-export const incidentRateTargetLabel = 'Incident rate target −30%'
+export const alertExerciseTargets = 'Delivery ≤15 min · acknowledgement ≤60 min'
 
 const extras: Record<string, { failedLoginCount: number; alertRoutes: AlertRoute[] }> = {
   'cedar-harbor': {
