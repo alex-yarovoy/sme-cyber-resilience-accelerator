@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use these kits in your work, please cite them as below."
+title: "SME Cyber Resilience Accelerator"
+abstract: >-
+  Three independently adoptable reference kits — Identity and MFA, Logging and
+  Alerts, and Backup and Recovery Drills — that help small and mid-sized
+  organizations and the teams that support them implement strong
+  authentication, central logging with alerting, and verified recovery on
+  common web-application stacks, with automated acceptance checks and a
+  control-to-evidence checklist mapped to NIST CSF 2.0.
+type: software
+authors:
+  - family-names: Yarovoy
+    given-names: Alexander
+repository-code: "https://github.com/alex-yarovoy/sme-cyber-resilience-accelerator"
+license: Apache-2.0
+version: 0.1.0
+keywords:
+  - cybersecurity
+  - cyber resilience
+  - small business
+  - multifactor authentication
+  - logging
+  - alerting
+  - backup
+  - disaster recovery
+  - NIST CSF 2.0

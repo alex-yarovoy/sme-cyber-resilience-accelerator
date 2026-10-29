@@ -1,61 +1,85 @@
 # SME Cyber Resilience Accelerator
 
-Shippable security and resilience building blocks for **managed service providers (MSPs)** and engineering teams that run **small and mid-sized** environments. The Accelerator packages **strong identity**, **observable operations**, and **tested recovery** into runnable software and automation you can deploy, extend, and run in production.
+[![CI](https://github.com/alex-yarovoy/sme-cyber-resilience-accelerator/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alex-yarovoy/sme-cyber-resilience-accelerator/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-## What it does
+Three independently adoptable reference kits that help small and mid-sized organizations — and the managed service providers (MSPs) and engineering teams that support them — put **strong authentication**, **central logging with alerting**, and **tested recovery** in place on common web-application stacks. Typical environments are e-commerce storefronts, booking and property systems, and other customer-facing applications built on PHP, PostgreSQL or MySQL, Redis, and containers.
 
-- **Identity and access** — MFA, session policy, and audit-friendly authentication flows backed by a real application stack.  
-- **Detection and response** — Centralized logs, metrics, and alert routing so incidents surface in your existing on-call or ticketing path.  
-- **Backup and continuity** — Encrypted backups, restore procedures, and drill-oriented scripts so recovery is rehearsed, not assumed.
+Each kit ships runnable configuration, **acceptance checks that run in CI on every push**, and an operating guide. The kits are designed to be adopted one at a time on existing systems.
 
-Each component is documented, versioned with the rest of the monorepo, and intended to be **forked or integrated** into your own delivery pipeline.
+## Kits
 
-## Components
+| Kit | Path | Stack | Acceptance checks in CI |
+|-----|------|-------|-------------------------|
+| **Identity and MFA** | [`identity-mfa/`](identity-mfa/) | Symfony 6.4, Vue 3, PostgreSQL, Redis | PHPUnit suite: login, MFA gating, refresh rotation, logout revocation, WebAuthn challenge binding, metrics |
+| **Logging and Alerts** | [`logging-alerts/`](logging-alerts/) | Filebeat, Elasticsearch, Kibana, Prometheus, Alertmanager | Sensitive-field redaction cases through the ingest pipeline; unit tests for every alert rule |
+| **Backup and Recovery Drills** | [`backup-dr/`](backup-dr/) | Shell, PostgreSQL / MySQL tooling, OpenSSL | Backup → encrypt → decrypt → restore into a clean database → per-table row-count and checksum verification, with a timed drill report |
 
-The monorepo contains **three independent products** (separate runtimes; no shared service mesh between them). They share a common goal: reduce credential abuse, catch regressions early, and prove that restore paths work.
+The three kits share conventions (environment variables, log fields, health and metrics endpoints — see the [development handbook](docs/DEVELOPMENT-HANDBOOK.md#6-cross-component-consistency-conventions)) but no runtime: each deploys and upgrades on its own.
 
-| Component | Path | Stack (summary) | What you get |
-|-----------|------|-----------------|--------------|
-| Identity + MFA | [`identity-mfa/`](identity-mfa/) | Symfony, Vue, PostgreSQL, Redis | Account security, MFA, auditable auth events |
-| Logging + Alerts | [`logging-alerts/`](logging-alerts/) | Elastic Stack, Prometheus, Alertmanager | Searchable logs, metrics, routed alerts |
-| Backup + DR drill | [`backup-dr/`](backup-dr/) | PostgreSQL (scripts), S3-style storage patterns | Encrypted backups, restore verification, drill-oriented runbooks |
+## How the kits fit together
 
-Each directory has its own `README.md` plus architecture notes and quick starts where applicable. Diagrams live under each component’s `diagrams/` folder.
+1. **Identity and MFA** decides who gets in: TOTP and WebAuthn second factors, risk-based step-up, brute-force throttling, short-lived tokens with server-side revocation, and an audit trail of authentication events.
+2. **Logging and Alerts** makes failures visible: central log collection with redaction of tokens, credentials, card numbers and emails before indexing; alerts on login and MFA failure bursts and on unavailable endpoints, routed through Alertmanager.
+3. **Backup and Recovery Drills** proves recovery works: encrypted database backups and a drill that restores into a clean database, verifies the data, and records how long recovery took and how old the backup was.
 
-## How the pieces fit together
+Together they cover **prevent → detect → recover** for the accounts, events and data a small organization depends on.
 
-1. **Identity** defines who may access systems and enforces MFA, session rules, and events you can retain for review.  
-2. **Logging and alerts** expose failures and abuse early and send **actionable** signal to the right channels.  
-3. **Backup and drills** pair encrypted backups with **restore** and **drill** steps and explicit **RTO** / **RPO** targets you configure.
+## Control-to-evidence checklist
 
-Together they close a loop: **prevent** credential abuse, **detect** operational and security regressions, **recover** with evidence that restore paths work.
+[`docs/CONTROL-MAPPING.md`](docs/CONTROL-MAPPING.md) lists every control with the NIST Cybersecurity Framework (CSF) 2.0 outcome it supports, the code that implements it, the evidence it produces, and how to verify it. Use it to agree scope with a system owner before rollout and to confirm afterwards that each control operates.
 
-## Current shipping surface
+## Release status (v0.1.0)
 
-Today’s releases center on **Docker Compose**-based deployments, production-style service configuration, and shell automation. That keeps onboarding fast and behavior transparent before you add heavier orchestration.
+| Area | Status |
+|------|--------|
+| Identity and MFA | TOTP MFA, risk-based step-up, rate limiting, JWT with refresh rotation and revocation, audit log, health and metrics endpoints. WebAuthn ships with server-side challenge binding; attestation and assertion signature verification are next on the [roadmap](ROADMAP.md). |
+| Logging and Alerts | Collection, redaction pipeline, authentication and availability alert rules with unit tests. Alert receivers are configured per environment. |
+| Backup and Recovery Drills | PostgreSQL and MySQL backup and restore, encryption, verified restore drill with machine-readable report. Off-site immutable copies are on the roadmap. |
+| Deployment | Docker Compose for every kit. Terraform modules and Kubernetes manifests provide cloud-neutral starting points; provider-specific modules are on the roadmap. |
+| Operator console | Vue application ([`console/`](console/)) presenting the assessment, control, rollout and recovery views with seeded sample tenants. |
 
-**Terraform** and **Kubernetes** (Helm and/or Kustomize) packaging are **planned**; see **[ROADMAP.md](ROADMAP.md)** for the phased delivery plan.
+The [roadmap](ROADMAP.md) lists what the next releases add; the [changelog](CHANGELOG.md) lists what each release shipped.
 
-**Operator console** — Vue app in `console/` for reviewing assessment, KPI, identity, detection, recovery, and architecture surfaces against a **seeded sample tenant**. Start: `cd console && npm ci && npm run dev` (port 5174). Wiring these surfaces to live identity, logging, and backup telemetry is on the roadmap.
+## Quick start
 
-## Continuous integration
+Each kit has its own quick start. The shortest path to see all three working:
 
-GitHub Actions run **ShellCheck** on `backup-dr/scripts` and **`docker compose config`** for `identity-mfa` and `logging-alerts`. See [.github/workflows](.github/workflows/).
+```bash
+# Identity and MFA — http://localhost:8880
+cd identity-mfa && docker compose up -d
 
-## Who it is for
+# Logging and Alerts — Kibana http://localhost:5601, Prometheus http://localhost:9090
+cd ../logging-alerts && docker compose up -d
 
-- Engineering leads standardizing security and reliability across many SME-scale deployments  
-- MSPs onboarding clients who need a clear baseline before customization  
-- Developers hardening auth and continuity in live environments
+# Backup and Recovery Drills — runs the full verified drill and writes a report under reports/
+cd ../backup-dr && ./tests/acceptance.sh
+```
 
-## Principles
+Requirements: Docker with Compose v2. Host PHP, Node and database clients are optional and only needed for working on the code outside containers.
 
-- **Portable defaults** — Prefer S3-compatible storage APIs, standard SQL, and common auth flows so you can change hosting or cloud without rewriting the Accelerator.  
-- **No secrets in git** — Use environment variables and `.env` (not committed); Compose files ship **dev-only** sample credentials—rotate for any shared environment.  
-- **Observable security** — Authentication and risk-related decisions should be **auditable** where the identity component implements logging.  
-- **Recoverability is tested** — Backup automation is built to pair with **restore** and **drill** scripts; a backup without a tested restore is incomplete.  
-- **Clear boundaries** — Each component stays self-contained so you can adopt one without taking the whole monorepo.
+## Reference guidance
+
+The kits turn widely used guidance for smaller organizations into working configuration and checks:
+
+- NIST CSF 2.0 and the [Small Business Quick-Start Guide (NIST SP 1300)](https://csrc.nist.gov/pubs/sp/1300/final) — outcome structure used in the control mapping.
+- [NIST SP 800-207, Zero Trust Architecture](https://csrc.nist.gov/pubs/sp/800/207/final) — per-request authentication and least-privilege design in the identity kit.
+- [CISA Cross-Sector Cybersecurity Performance Goals](https://www.cisa.gov/cybersecurity-performance-goals) — prioritization of MFA, failed-login detection, log collection and tested backups.
+
+## Reproducing a kit and reporting results
+
+[`docs/REPRODUCING.md`](docs/REPRODUCING.md) walks through setting up a kit from a tagged release, running its acceptance checks, and recording the results. Operators who complete it can share their results through the **Reproduction report** issue form; reports with the version used, environment, deviations and the help needed are what improve the kits for the next team.
 
 ## Contributing
 
-Issues and pull requests are welcome; keep changes focused and reproducible from a clean checkout.
+Issues and pull requests are welcome. Keep changes focused, documented, and reproducible from a clean checkout; CI must pass. See [docs/DEVELOPMENT-HANDBOOK.md](docs/DEVELOPMENT-HANDBOOK.md) for layout and conventions.
+
+## Security
+
+Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
+## License and citation
+
+Apache License 2.0 — see [LICENSE](LICENSE). To cite the project, use [CITATION.cff](CITATION.cff).
+
+Maintainer: **Alexander Yarovoy**.

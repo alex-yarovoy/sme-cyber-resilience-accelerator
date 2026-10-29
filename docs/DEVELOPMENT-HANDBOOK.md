@@ -1,6 +1,6 @@
 # SME Cyber Resilience Accelerator — Development Handbook
 
-**Purpose of this document:** Onboarding and continuation guide for engineers (or AI assistants) who have **no prior context** for this repository. It describes layout, shipped behavior, operating principles, known gaps, and a prioritized backlog.
+**Purpose of this document:** Onboarding and continuation guide for engineers who have **no prior context** for this repository. It describes layout, shipped behavior, operating principles, known gaps, and a prioritized backlog.
 
 **Repository root:** Monorepo-style folder with three independent **components** (subprojects). There is **no** shared runtime between them; they are thematically related (identity, observability, recovery).
 
@@ -280,19 +280,7 @@ When extending any component:
 
 ---
 
-## 9. Quick “new session” prompt block
-
-You can paste the block below into another AI session together with this file:
-
-```
-You are continuing work on the SME Cyber Resilience Accelerator monorepo (three folders: identity-mfa, logging-alerts, backup-dr).
-Read docs/DEVELOPMENT-HANDBOOK.md first. It is the source of truth for layout, principles, gaps, and backlog.
-Do not assume features exist unless the handbook or code shows them. Prefer small PR-sized changes; run Docker builds where relevant.
-```
-
----
-
-## 10. Maintainer and contact
+## 9. Maintainer and contact
 
 Primary maintainer: **Alexander Yarovoy**.
 
