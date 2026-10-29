@@ -1,0 +1,84 @@
+name: Reproduction report
+description: Share the results of setting up a kit from a release tag and running its acceptance checks.
+title: "[Reproduction] <kit> <version>"
+labels: ["reproduction-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing a kit. Follow [docs/REPRODUCING.md](https://github.com/alex-yarovoy/sme-cyber-resilience-accelerator/blob/main/docs/REPRODUCING.md) and fill in what you can. Do not paste secrets, internal hostnames, or customer data.
+  - type: dropdown
+    id: kit
+    attributes:
+      label: Kit
+      options:
+        - Identity and MFA
+        - Logging and Alerts
+        - Backup and Recovery Drills
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Release tag and commit
+      placeholder: "v0.1.0 / 1a2b3c4"
+    validations:
+      required: true
+  - type: textarea
+    id: operator
+    attributes:
+      label: Operator
+      description: Your role and relevant experience, and how you would like to be credited (name, organization, or anonymous).
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and architecture, Docker and Compose versions, local / VM / cloud.
+    validations:
+      required: true
+  - type: dropdown
+    id: context
+    attributes:
+      label: Context
+      options:
+        - Lab evaluation
+        - Staging or pre-production
+        - Deployment serving real users
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Acceptance check results
+      description: Paste the output or the drill report JSON.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: controls
+    attributes:
+      label: Controls verified
+      description: Controls from docs/CONTROL-MAPPING.md you checked, and the outcome for each (works as documented / works with changes / does not work).
+  - type: input
+    id: duration
+    attributes:
+      label: Time from clone to passing checks
+      placeholder: "e.g. 75 minutes"
+  - type: dropdown
+    id: assistance
+    attributes:
+      label: Help needed from the maintainer
+      options:
+        - None
+        - Documentation only
+        - Written Q&A
+        - Live session
+    validations:
+      required: true
+  - type: textarea
+    id: deviations
+    attributes:
+      label: Deviations and problems
+      description: Every place you departed from the instructions, and anything that did not work.

@@ -11,10 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install ShellCheck
-        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
       - name: Run ShellCheck
-        run: shellcheck backup-dr/scripts/*.sh
+        run: docker run --rm -v "$PWD":/mnt -w /mnt koalaman/shellcheck:v0.11.0 backup-dr/scripts/*.sh backup-dr/tests/*.sh
 
   compose-config:
     runs-on: ubuntu-latest
@@ -50,11 +48,14 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: ctype, iconv, json, pdo, pdo_pgsql, redis
+          extensions: ctype, iconv, json, mbstring, xml, sodium, pdo, pdo_pgsql, redis
           coverage: none
       - name: Install Composer dependencies
         working-directory: identity-mfa/backend
         run: composer install --no-interaction --prefer-dist --no-scripts
+      - name: Create .env from example
+        working-directory: identity-mfa/backend
+        run: cp .env.example .env
       - name: Generate JWT keys for tests
         working-directory: identity-mfa/backend
         run: |
@@ -67,15 +68,88 @@ jobs:
         working-directory: identity-mfa/backend
         env:
           APP_ENV: test
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpunit --testdox
 
   terraform-validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Terraform fmt
+        working-directory: terraform
+        run: terraform fmt -check -recursive
       - name: Terraform validate (example environment)
         working-directory: terraform/environments/example
         run: |
           terraform init -backend=false
           terraform validate
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Type-check TypeScript sources
+        run: npx tsc --noEmit -p .
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  dr-drill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backup and recovery acceptance check
+        run: backup-dr/tests/acceptance.sh
+      - name: Upload drill reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dr-drill-reports-${{ github.run_number }}-${{ github.run_attempt }}
+          path: backup-dr/reports/
+          if-no-files-found: warn
+
+  alert-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check alert rules
+        run: docker run --rm -v "$PWD/logging-alerts":/w -w /w --entrypoint promtool prom/prometheus:v2.53.0 check rules alert-rules/auth.rules.yml
+      - name: Alert rule unit tests
+        run: docker run --rm -v "$PWD/logging-alerts":/w -w /w/tests --entrypoint promtool prom/prometheus:v2.53.0 test rules auth.rules.test.yml
+
+  log-redaction:
+    runs-on: ubuntu-latest
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -fs http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Redaction acceptance check
+        working-directory: logging-alerts
+        env:
+          ES_URL: http://localhost:9200
+        run: tests/redaction_check.sh
