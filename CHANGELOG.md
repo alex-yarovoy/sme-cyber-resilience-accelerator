@@ -2,7 +2,7 @@
 
 All notable changes are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [semantic versioning](https://semver.org/).
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-10-29
 
 First tagged release of the three kits, the operator console, and their acceptance checks.
 
@@ -33,3 +33,5 @@ First tagged release of the three kits, the operator console, and their acceptan
 ## Earlier development (April–October 2026)
 
 Initial implementation of the identity, logging and backup kits, Compose stacks, Terraform and Kubernetes starting points, and the operator console. See the git history for details.
+
+[0.1.0]: https://github.com/alex-yarovoy/sme-cyber-resilience-accelerator/releases/tag/v0.1.0
