@@ -131,8 +131,8 @@ class AuthController extends AbstractController
         }
 
         try {
-            // Decode and validate the temporary token
-            $payload = $this->jwtTokenService->decodeToken($data['token']);
+            // Decode and validate the temporary token: MFA-pending type only, not used before
+            $payload = $this->jwtTokenService->decodeMfaToken($data['token']);
             $user = $this->entityManager->getRepository(User::class)->find($payload['user_id']);
             
             if (!$user || !$user->isActive()) {
@@ -147,6 +147,11 @@ class AuthController extends AbstractController
 
             // Verify TOTP code
             if ($this->totpAuthenticator->checkCode($user, $data['code'])) {
+                // Single use: a concurrent replay that loses the claim is rejected
+                if (!$this->jwtTokenService->consumeMfaToken($payload)) {
+                    throw new \InvalidArgumentException('MFA token already used');
+                }
+
                 // Generate final access token
                 $accessToken = $this->jwtManager->create($user);
                 $refreshToken = $this->refreshTokenGenerator->createForUser($user);

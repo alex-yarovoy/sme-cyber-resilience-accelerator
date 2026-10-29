@@ -409,9 +409,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
 
         return new TotpConfiguration(
             $this->mfaSecret,
-            30, // 30 second window
-            6,  // 6 digits
-            'sha1' // SHA1 algorithm
+            TotpConfiguration::ALGORITHM_SHA1,
+            30, // 30 second period
+            6   // 6 digits
         );
     }
 

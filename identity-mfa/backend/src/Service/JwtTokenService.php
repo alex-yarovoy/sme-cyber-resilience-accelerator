@@ -9,6 +9,8 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 class JwtTokenService
 {
+    public const MFA_TOKEN_TYPE = 'mfa_required';
+
     private string $jwtSecret;
     private string $jwtAlgorithm;
     private int $refreshTokenExpiry;
@@ -62,11 +64,44 @@ class JwtTokenService
         return isset($payload['exp']) && $payload['exp'] < time();
     }
 
+    /**
+     * Decode a token issued by generateMfaToken(). Rejects tokens of any other
+     * type and tokens that were already used for a successful verification.
+     *
+     * @return array<string, mixed>
+     */
+    public function decodeMfaToken(string $token): array
+    {
+        $payload = $this->decodeToken($token);
+
+        if (($payload['type'] ?? null) !== self::MFA_TOKEN_TYPE) {
+            throw new \InvalidArgumentException('Invalid MFA token type');
+        }
+
+        if ($this->tokenDenylist->isDenied($this->extractTokenId($payload))) {
+            throw new \InvalidArgumentException('MFA token already used');
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Mark an MFA token as used for the rest of its lifetime.
+     *
+     * @param array<string, mixed> $payload payload returned by decodeMfaToken()
+     *
+     * @return bool false when the token was already used (concurrent replay)
+     */
+    public function consumeMfaToken(array $payload): bool
+    {
+        return $this->tokenDenylist->claim($this->extractTokenId($payload), $this->remainingTtl($payload));
+    }
+
     public function generateMfaToken(User $user): string
     {
         $payload = [
             'user_id' => $user->getId(),
-            'type' => 'mfa_required',
+            'type' => self::MFA_TOKEN_TYPE,
             'iat' => time(),
             'exp' => time() + 300,
             'jti' => uniqid('mfa_', true),
