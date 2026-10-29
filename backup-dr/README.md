@@ -10,8 +10,10 @@
 | [`scripts/encrypt_backup.sh`](scripts/encrypt_backup.sh) / [`decrypt_backup.sh`](scripts/decrypt_backup.sh) | OpenSSL AES-256-CBC with PBKDF2 (`BACKUP_ENC_PASS`) |
 | [`scripts/restore_postgres.sh`](scripts/restore_postgres.sh) | Destructive restore into an existing Postgres (`DROP SCHEMA public CASCADE`) — **lab only** |
 | [`scripts/backup_mysql.sh`](scripts/backup_mysql.sh) / [`restore_mysql.sh`](scripts/restore_mysql.sh) | `mysqldump` → gzip and restore (same env contract as Postgres: `DB_HOST`, `DB_USER`, `DB_NAME`, optional `DB_PASSWORD`) |
-| [`scripts/dr_drill.sh`](scripts/dr_drill.sh) | End-to-end drill: temporary `postgres:14` container → restore from `.sql.gz` → sanity SQL → `reports/` text report |
+| [`scripts/dr_drill.sh`](scripts/dr_drill.sh) | Restore drill: temporary `postgres:14` container → restore from `.sql.gz` → sha256 check → per-table row counts and content checksums, compared with an expected manifest when `DR_EXPECTED_MANIFEST` is set → `reports/` text + JSON report with restore timing, backup age and `PASS`/`FAIL` exit code |
+| [`scripts/table_checksums.sh`](scripts/table_checksums.sh) | Per-table row count and md5 of rows for a Postgres database in a container; produces the manifest format `dr_drill.sh` compares against |
 | [`tests/dr_sanity.sh`](tests/dr_sanity.sh) | Minimal connectivity check when `DB_*` env vars are set |
+| [`tests/acceptance.sh`](tests/acceptance.sh) | Backup and recovery acceptance check (see [Acceptance check](#acceptance-check)) |
 
 ## What is not in this repo yet (see [ROADMAP.md](../ROADMAP.md))
 - **File-system / volume-level** backups (only database dumps today).
@@ -60,7 +62,25 @@ CLAMAV_SCAN=1 ./scripts/dr_drill.sh backups/app_TIMESTAMP.sql.gz
 
 Reports appear under `reports/`.
 
+## Acceptance check
+
+```bash
+./tests/acceptance.sh
+```
+
+Requires Docker, `openssl`, `gzip` and `python3` (for millisecond timestamps). Runs the same way locally and in the `dr-drill` CI job, which uploads `reports/` as a workflow artifact on every push.
+
+Steps:
+
+1. Starts a source `postgres:14` container and loads [`tests/fixtures/seed.sql`](tests/fixtures/seed.sql) (3 tables, 1000 deterministic rows).
+2. Records per-table row counts and an md5 of each table's rows sorted by their text form ([`scripts/table_checksums.sh`](scripts/table_checksums.sh)).
+3. Backs up with `backup_postgres.sh` (`pg_dump` runs inside the source container), encrypts with `encrypt_backup.sh`, decrypts with `decrypt_backup.sh`. `BACKUP_ENC_PASS` is used if set; otherwise a one-off random passphrase is generated.
+4. Runs `dr_drill.sh` on the decrypted file with `DR_EXPECTED_MANIFEST` and `DR_EXPECTED_SHA256`: restores into a fresh container with `ON_ERROR_STOP`, then compares every table's row count and checksum with the source.
+5. Negative control: restores a copy of the dump with one `orders` row removed and requires the drill to report `FAIL` (skip with `ACCEPTANCE_SKIP_NEGATIVE=1`).
+
+Each drill writes `reports/drill_<UTC timestamp>.txt` and a `.json` with the same fields: backup file and sha256 (and whether it matches the pre-encryption sidecar), backup creation time, restore start/end, restore elapsed seconds (observed RTO for this dataset), backup age at restore start in seconds (RPO proxy), per-table results, and overall `PASS`/`FAIL`. `dr_drill.sh` exits non-zero on `FAIL`. Without `DR_EXPECTED_MANIFEST`, `dr_drill.sh <file>` still restores and records per-table counts and checksums, with verification marked `NOT_RUN`.
+
 ## Principles
 
 - **3-2-1** — You keep multiple copies and at least one off-site; scripts help automate **1→2** (encrypt, copy) once you wire storage.
-- **Tested recovery** — A backup without a restored row count (or drill) is incomplete; `dr_drill.sh` is the minimal automated check.
+- **Tested recovery** — A backup without a restored row count (or drill) is incomplete; `dr_drill.sh` verifies restored row counts and content checksums, and [`tests/acceptance.sh`](tests/acceptance.sh) runs the full backup → encrypt → decrypt → restore → verify chain on every CI push.
