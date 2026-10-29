@@ -7,5 +7,7 @@ filebeat.inputs:
 
 output.elasticsearch:
   hosts: ["elasticsearch:9200"]
+  # Masks tokens, credentials, card numbers and emails (see configs/ingest-pipeline.json).
+  pipeline: sme-redact
 
 

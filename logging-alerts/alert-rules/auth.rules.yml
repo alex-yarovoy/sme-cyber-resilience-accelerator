@@ -1,22 +1,32 @@
 groups:
   - name: auth-alerts
     rules:
+      # rate() is per second; multiply by 60 so thresholds read as events per minute.
       - alert: HighLoginFailures
-        expr: rate(app_auth_login_failed_total[5m]) > 5
+        expr: rate(app_auth_login_failed_total[5m]) * 60 > 5
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "High rate of failed logins"
-          description: "Failed logins exceed 5/min over 5m"
+          description: "Failed logins exceed 5/min averaged over 5m"
 
       - alert: MFABurstFailures
-        expr: rate(app_auth_mfa_failed_total[5m]) > 3
+        expr: rate(app_auth_mfa_failed_total[5m]) * 60 > 3
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "MFA failures spiking"
-          description: "MFA failures exceed 3/min over 5m"
+          description: "MFA failures exceed 3/min averaged over 5m"
 
-
+  - name: availability-alerts
+    rules:
+      - alert: EndpointDown
+        expr: probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Blackbox probe failing for {{ $labels.instance }}"
+          description: "HTTP probe has failed for at least 2 minutes"

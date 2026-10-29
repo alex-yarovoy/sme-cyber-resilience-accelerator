@@ -11,13 +11,27 @@ services:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     ports: ["5601:5601"]
     depends_on: [elasticsearch]
+  # One-shot: load the sme-redact ingest pipeline before Filebeat ships anything.
+  pipeline-setup:
+    image: curlimages/curl:8.8.0
+    volumes:
+      - ./configs/ingest-pipeline.json:/pipeline.json:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until curl -fs http://elasticsearch:9200/_cluster/health >/dev/null; do sleep 2; done;
+        curl -fsS -X PUT http://elasticsearch:9200/_ingest/pipeline/sme-redact
+        -H 'Content-Type: application/json' --data-binary @/pipeline.json
+    depends_on: [elasticsearch]
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.12.2
     user: root
     volumes:
       - ./configs/filebeat.yml:/usr/share/filebeat/filebeat.yml
       - ./configs/logs/:/var/log/app/
-    depends_on: [elasticsearch]
+    depends_on:
+      pipeline-setup:
+        condition: service_completed_successfully
   nginx-health:
     image: nginx:alpine
     volumes:

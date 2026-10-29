@@ -1,0 +1,74 @@
+# Unit tests for alert-rules/*.yml. Run with:
+#   promtool test rules tests/auth.rules.test.yml   (from logging-alerts/)
+rule_files:
+  - ../alert-rules/auth.rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # 10 failed logins per minute: above the 5/min threshold, fires once `for: 5m` has elapsed.
+  - interval: 1m
+    input_series:
+      - series: 'app_auth_login_failed_total{instance="identity",job="identity_mfa"}'
+        values: '0+10x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: HighLoginFailures
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: HighLoginFailures
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: identity
+              job: identity_mfa
+            exp_annotations:
+              summary: "High rate of failed logins"
+              description: "Failed logins exceed 5/min averaged over 5m"
+
+  # 2 failed logins per minute: normal noise, must not page anyone.
+  - interval: 1m
+    input_series:
+      - series: 'app_auth_login_failed_total{instance="identity",job="identity_mfa"}'
+        values: '0+2x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: HighLoginFailures
+        exp_alerts: []
+
+  # 6 MFA failures per minute: above the 3/min threshold.
+  - interval: 1m
+    input_series:
+      - series: 'app_auth_mfa_failed_total{instance="identity",job="identity_mfa"}'
+        values: '0+6x20'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: MFABurstFailures
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: identity
+              job: identity_mfa
+            exp_annotations:
+              summary: "MFA failures spiking"
+              description: "MFA failures exceed 3/min averaged over 5m"
+
+  # Probe fails from minute 3 onward; alert fires after 2 minutes of failure.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{instance="http://nginx-health:80/",job="blackbox"}'
+        values: '1 1 1 0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: EndpointDown
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: EndpointDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              instance: "http://nginx-health:80/"
+              job: blackbox
+            exp_annotations:
+              summary: "Blackbox probe failing for http://nginx-health:80/"
+              description: "HTTP probe has failed for at least 2 minutes"

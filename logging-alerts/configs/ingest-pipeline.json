@@ -1,9 +1,9 @@
 {
-  "description": "Redact common sensitive fields",
+  "description": "sme-redact: redact common sensitive values from the log message before indexing",
   "processors": [
-    { "gsub": { "field": "message", "pattern": "(Bearer )([A-Za-z0-9\-_.]+)", "replacement": "$1[REDACTED]" } },
-    { "gsub": { "field": "message", "pattern": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "replacement": "[EMAIL]" } }
+    { "gsub": { "field": "message", "ignore_missing": true, "pattern": "(?i)(Bearer )[A-Za-z0-9\\-_.=]+", "replacement": "$1[REDACTED]" } },
+    { "gsub": { "field": "message", "ignore_missing": true, "pattern": "(?i)((?:password|passwd|pwd|secret|api[_-]?key|token)[\"']?\\s*[:=]\\s*[\"']?)[^\\s\"',;&]+", "replacement": "$1[REDACTED]" } },
+    { "gsub": { "field": "message", "ignore_missing": true, "pattern": "\\b(?:\\d[ -]?){12,18}\\d\\b", "replacement": "[PAN]" } },
+    { "gsub": { "field": "message", "ignore_missing": true, "pattern": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "replacement": "[EMAIL]" } }
   ]
 }
-
-

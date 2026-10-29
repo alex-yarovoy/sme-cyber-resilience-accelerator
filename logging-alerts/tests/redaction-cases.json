@@ -1,0 +1,37 @@
+[
+  {
+    "name": "bearer token",
+    "message": "GET /api/auth/me Authorization: Bearer eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
+    "expected": "GET /api/auth/me Authorization: Bearer [REDACTED]"
+  },
+  {
+    "name": "email address",
+    "message": "login failed for admin@example.com from 203.0.113.7",
+    "expected": "login failed for [EMAIL] from 203.0.113.7"
+  },
+  {
+    "name": "password key-value",
+    "message": "POST /login body password=Hunter2! remember=1",
+    "expected": "POST /login body password=[REDACTED] remember=1"
+  },
+  {
+    "name": "json api key",
+    "message": "config loaded {\"api_key\": \"sk_live_51Habc\", \"region\": \"us-east\"}",
+    "expected": "config loaded {\"api_key\": \"[REDACTED]\", \"region\": \"us-east\"}"
+  },
+  {
+    "name": "card number with spaces",
+    "message": "payment declined card 4111 1111 1111 1111 amount 25.00",
+    "expected": "payment declined card [PAN] amount 25.00"
+  },
+  {
+    "name": "card number without separators",
+    "message": "refund for 5555555555554444 queued",
+    "expected": "refund for [PAN] queued"
+  },
+  {
+    "name": "ordinary values stay readable",
+    "message": "order 100234 shipped at 2026-01-15T12:00:00Z status=ok",
+    "expected": "order 100234 shipped at 2026-01-15T12:00:00Z status=ok"
+  }
+]

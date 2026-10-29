@@ -61,8 +61,28 @@ From the `logging-alerts/` directory:
 
 ## Alerting (examples in repo)
 
-Example rules live under [`alert-rules/`](alert-rules/) (auth-focused samples). Tune thresholds for your environment; lab defaults are not production-ready.
+Example rules live under [`alert-rules/`](alert-rules/): failed-login and MFA-failure rates (thresholds expressed per minute) and an availability rule on the blackbox HTTP probe. Thresholds are starting points; tune them to your traffic. Unit tests for every rule are in [`tests/auth.rules.test.yml`](tests/auth.rules.test.yml).
 
 ## Dashboards
 
 Version-pinned **NDJSON** exports for dashboards are tracked on **[ROADMAP.md](../ROADMAP.md)**. Until those land, build views in **Discover** as above, or read [`dashboards/README.md`](dashboards/README.md) for the saved-object plan.
+
+## Sensitive-field redaction
+
+Filebeat sends every event through the `sme-redact` ingest pipeline ([`configs/ingest-pipeline.json`](configs/ingest-pipeline.json)); the one-shot `pipeline-setup` service loads it before Filebeat starts. The pipeline masks, inside `message`:
+
+- bearer tokens → `Bearer [REDACTED]`
+- `password=`, `secret=`, `token=`, `api_key=` style key-value pairs (plain or JSON) → `[REDACTED]`
+- 13–19 digit card-like numbers, with or without spaces or dashes → `[PAN]`
+- email addresses → `[EMAIL]`
+
+Known limitations: only the `message` field is processed; other structured fields must be added as extra processors. The card-number pattern is deliberately broad and also masks other 13–19 digit numbers (for example millisecond epoch timestamps). Pattern-based redaction reduces exposure but does not replace keeping secrets out of logs at the source.
+
+## Acceptance checks
+
+| Check | What it proves | Run (from `logging-alerts/`) |
+|-------|----------------|------------------------------|
+| Alert rule unit tests | `HighLoginFailures`, `MFABurstFailures` and `EndpointDown` fire on synthetic series above threshold, stay silent below it, and respect their `for:` windows | `promtool test rules tests/auth.rules.test.yml` |
+| Redaction check | Each case in [`tests/redaction-cases.json`](tests/redaction-cases.json) comes out of the pipeline exactly as expected, including values that must stay readable | `ES_URL=http://localhost:9200 tests/redaction_check.sh` |
+
+Both checks run in CI on every push. Without local Prometheus tooling, use the container: `docker run --rm -v "$PWD":/w -w /w/tests --entrypoint promtool prom/prometheus:v2.53.0 test rules auth.rules.test.yml`.
